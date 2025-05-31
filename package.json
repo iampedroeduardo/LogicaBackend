@@ -1,0 +1,26 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iampedroeduardo/LogicaBackend.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/iampedroeduardo/LogicaBackend/issues"
+  },
+  "homepage": "https://github.com/iampedroeduardo/LogicaBackend#readme",
+  "dependencies": {
+    "@prisma/client": "^6.8.2",
+    "express": "^5.1.0",
+    "prisma": "^6.8.2"
+  }
+}

@@ -1,0 +1,138 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Genero {
+  MASCULINO
+  FEMININO
+  OUTRO
+}
+
+enum Tipo {
+  RaciocinioLogico
+  Programacao
+}
+
+enum Status {
+  Aprovado
+  Negado
+  Pendente
+  Rascunho
+}
+
+
+model Usuario {
+  id Int @id @default(autoincrement())
+  nome String
+  usuario String
+  genero Genero
+  nascimento DateTime
+  email String
+  senha String
+  tipo Tipo
+  adm Boolean
+  token String
+  rank Rank @relation(fields: [rankId], references: [id])
+  rankId Int
+  nivel Int
+  algoritmos Algoritmo[]
+  multiplasEscolhas MultiplaEscolha[]
+  historicosAlgoritmo HistoricoAlgoritmo[]
+  historicosMultiplaEscolha HistoricoMultiplaEscolha[]
+}
+
+model Rank {
+  id Int @id @default(autoincrement())
+  nome String
+  tipo Tipo
+  cor String
+  algoritmos Algoritmo[]
+  multiplasEscolhas MultiplaEscolha[]
+  usuarios Usuario[]
+}
+
+model Algoritmo {
+  id Int @id @default(autoincrement())
+  nome String
+  descricao String
+  script String
+  ativo Boolean
+  status Status
+  rank Rank @relation(fields: [rankId], references: [id])
+  rankId Int
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+  usuarioId Int
+  errosLacuna ErroLacuna[]
+  historicosAlgoritmo HistoricoAlgoritmo[]
+}
+
+model MultiplaEscolha {
+  id Int @id @default(autoincrement())
+  nome String
+  descricao String
+  gabarito String
+  ativo Boolean
+  status Status
+  opcao1 String
+  opcao2 String
+  opcao3 String
+  opcao4 String
+  nivel Int
+  rank Rank @relation(fields: [rankId], references: [id])
+  rankId Int
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+  usuarioId Int
+  historicosMultiplaEscolha HistoricoMultiplaEscolha[]
+}
+
+model HistoricoAlgoritmo {
+  id Int @id @default(autoincrement())
+  data DateTime
+  acertou Boolean
+  distrator Distrator @relation(fields: [distratorId], references: [id])
+  distratorId Int
+  algoritmo Algoritmo @relation(fields: [algoritmoId], references: [id])
+  algoritmoId Int
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+  usuarioId Int
+}
+
+model HistoricoMultiplaEscolha {
+  id Int @id @default(autoincrement())
+  data DateTime
+  opcao String
+  multiplaEscolha MultiplaEscolha @relation(fields: [multiplaEscolhaId], references: [id])
+  multiplaEscolhaId Int
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+  usuarioId Int
+}
+
+model ErroLacuna {
+  id Int @id @default(autoincrement())
+  posicaoInicial Int
+  posicaoFinal Int
+  nivel Int
+  algoritmo Algoritmo @relation(fields: [algoritmoId], references: [id])
+  algoritmoId Int
+  distratores Distrator[]
+}
+
+model Distrator {
+  id Int @id @default(autoincrement())
+  descricao String
+  erroLacuna ErroLacuna @relation(fields: [erroLacunaId], references: [id])
+  erroLacunaId Int
+  historicosAlgoritmo HistoricoAlgoritmo[]
+}
