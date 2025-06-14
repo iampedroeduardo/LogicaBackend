@@ -1,12 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
 }
 
 datasource db {
@@ -15,9 +8,9 @@ datasource db {
 }
 
 enum Genero {
-  MASCULINO
-  FEMININO
-  OUTRO
+  Masculino
+  Feminino
+  Outro
 }
 
 enum Tipo {
@@ -43,10 +36,10 @@ model Usuario {
   senha String
   tipo Tipo
   adm Boolean
-  token String
-  rank Rank @relation(fields: [rankId], references: [id])
-  rankId Int
-  nivel Int
+  token String?
+  rank Rank? @relation(fields: [rankId], references: [id])
+  rankId Int?
+  nivel Int?
   algoritmos Algoritmo[]
   multiplasEscolhas MultiplaEscolha[]
   historicosAlgoritmo HistoricoAlgoritmo[]
