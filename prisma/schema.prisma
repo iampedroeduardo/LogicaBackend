@@ -34,7 +34,7 @@ model Usuario {
   nascimento DateTime
   email String
   senha String
-  tipo Tipo
+  tipo Tipo?
   adm Boolean
   token String?
   rank Rank? @relation(fields: [rankId], references: [id])
