@@ -3,5 +3,6 @@ const route = express.Router();
 const usuarioController = require('../controllers/usuario.controller')
 
 route.post('/cadastro', usuarioController.cadastrar)
+route.post('/entrar', usuarioController.entrar)
 
 module.exports = route
