@@ -29,10 +29,10 @@ enum Status {
 model Usuario {
   id Int @id @default(autoincrement())
   nome String
-  usuario String
+  usuario String @unique
   genero Genero
   nascimento DateTime
-  email String
+  email String @unique
   senha String
   tipo Tipo?
   adm Boolean

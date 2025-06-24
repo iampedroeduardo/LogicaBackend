@@ -40,23 +40,22 @@ module.exports.cadastrar = async (req, res) => {
 module.exports.entrar = async (req, res) => {
   try {
     const { usuario, senha } = req.body;
-    const usuarioEncontrado = await prisma.usuario.findFirst({ //dps precisa mudar pra unique no schema!!!!
-        where: { usuario },
-      });
+    const usuarioEncontrado = await prisma.usuario.findUnique({
+      where: { OR: [{ usuario: usuario }, { email: usuario }] },
+    });
     if (usuarioEncontrado) {
       const senhaCorreta = await bcrypt.compare(senha, usuarioEncontrado.senha);
       if (senhaCorreta) {
-          // const payload = { id: usuarioEncontrado.id, email: usuarioEncontrado.email, admin: usuarioEncontrado.adm };
-          // const token = jwt.sign(payload, secret) terminar do jwt???
-          res.status(200).json(usuarioEncontrado);
+        // const payload = { id: usuarioEncontrado.id, email: usuarioEncontrado.email, admin: usuarioEncontrado.adm };
+        // const token = jwt.sign(payload, secret) terminar do jwt???
+        res.status(200).json(usuarioEncontrado);
       } else {
         res.status(401).json({ error: "senha" });
       }
     } else {
       res.status(401).json({ error: "usuario" });
     }
-    } catch (error) {
-      console.log(error);
-  }   
-}
-
+  } catch (error) {
+    console.log(error);
+  }
+};
