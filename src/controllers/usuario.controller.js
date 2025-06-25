@@ -40,7 +40,7 @@ module.exports.cadastrar = async (req, res) => {
 module.exports.entrar = async (req, res) => {
   try {
     const { usuario, senha } = req.body;
-    const usuarioEncontrado = await prisma.usuario.findUnique({
+    const usuarioEncontrado = await prisma.usuario.findFirst({
       where: { OR: [{ usuario: usuario }, { email: usuario }] },
     });
     if (usuarioEncontrado) {
