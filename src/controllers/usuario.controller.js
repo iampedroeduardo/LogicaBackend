@@ -30,7 +30,18 @@ module.exports.cadastrar = async (req, res) => {
       where: { id: novoUsuario.id },
       data: { token },
     });
-    res.status(201).json(usuarioEditado);
+    res
+      .status(201)
+      .json({
+        nome: usuarioEditado.nome,
+        adm: usuarioEditado.adm,
+        token: usuarioEditado.token,
+        id: usuarioEditado.id,
+        email: usuarioEditado.email,
+        usuario: usuarioEditado.usuario,
+        usuario: usuarioEditado.genero,
+        nascimento: usuarioEditado.nascimento,
+      });
   } catch (error) {
     console.log(error);
     res.status(500).json({ error: "Erro ao criar usuário." });
@@ -48,7 +59,16 @@ module.exports.entrar = async (req, res) => {
       if (senhaCorreta) {
         // const payload = { id: usuarioEncontrado.id, email: usuarioEncontrado.email, admin: usuarioEncontrado.adm };
         // const token = jwt.sign(payload, secret) terminar do jwt???
-        res.status(200).json(usuarioEncontrado);
+        res.status(200).json({
+          nome: usuarioEncontrado.nome,
+          adm: usuarioEncontrado.adm,
+          token: usuarioEncontrado.token,
+          id: usuarioEncontrado.id,
+          email: usuarioEncontrado.email,
+          usuario: usuarioEncontrado.usuario,
+          usuario: usuarioEncontrado.genero,
+          nascimento: usuarioEncontrado.nascimento,
+        });
       } else {
         res.status(401).json({ error: "senha" });
       }
