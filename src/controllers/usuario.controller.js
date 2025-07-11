@@ -18,6 +18,10 @@ module.exports.cadastrar = async (req, res) => {
         usuario,
         senha: senhaEncriptada,
         adm: false,
+        cor: "Preto",
+        acessorio: "None",
+        rankId: 1,
+        nivel: 0
       },
     });
     const payload = {
@@ -30,17 +34,31 @@ module.exports.cadastrar = async (req, res) => {
       where: { id: novoUsuario.id },
       data: { token },
     });
+    const usuarioEncontrado = await prisma.usuario.findFirst({
+      where: { id: novoUsuario.id },
+      include: {
+        rank: true,
+      },
+    });
+    const proximoRank = await prisma.rank.findFirst({
+      where: { id: usuarioEncontrado.rankId + 1 },
+    });
     res
       .status(201)
       .json({
-        nome: usuarioEditado.nome,
-        adm: usuarioEditado.adm,
-        token: usuarioEditado.token,
-        id: usuarioEditado.id,
-        email: usuarioEditado.email,
-        usuario: usuarioEditado.usuario,
-        usuario: usuarioEditado.genero,
-        nascimento: usuarioEditado.nascimento,
+        nome: usuarioEncontrado.nome,
+        adm: usuarioEncontrado.adm,
+        token: usuarioEncontrado.token,
+        id: usuarioEncontrado.id,
+        email: usuarioEncontrado.email,
+        usuario: usuarioEncontrado.usuario,
+        genero: usuarioEncontrado.genero,
+        nascimento: usuarioEncontrado.nascimento,
+        cor: usuarioEncontrado.cor,
+        acessorio: usuarioEncontrado.acessorio,
+        rank: usuarioEncontrado.rank,
+        nivel: usuarioEncontrado.nivel,
+        proximoRank: proximoRank
       });
   } catch (error) {
     console.log(error);
@@ -53,6 +71,12 @@ module.exports.entrar = async (req, res) => {
     const { usuario, senha } = req.body;
     const usuarioEncontrado = await prisma.usuario.findFirst({
       where: { OR: [{ usuario: usuario }, { email: usuario }] },
+      include: {
+        rank: true,
+      },
+    });
+    const proximoRank = await prisma.rank.findFirst({
+      where: { id: usuarioEncontrado.rankId + 1 },
     });
     if (usuarioEncontrado) {
       const senhaCorreta = await bcrypt.compare(senha, usuarioEncontrado.senha);
@@ -66,8 +90,13 @@ module.exports.entrar = async (req, res) => {
           id: usuarioEncontrado.id,
           email: usuarioEncontrado.email,
           usuario: usuarioEncontrado.usuario,
-          usuario: usuarioEncontrado.genero,
+          genero: usuarioEncontrado.genero,
           nascimento: usuarioEncontrado.nascimento,
+          cor: usuarioEncontrado.cor,
+          acessorio: usuarioEncontrado.acessorio,
+          rank: usuarioEncontrado.rank,
+          proximoRank: proximoRank,
+          nivel: usuarioEncontrado.nivel
         });
       } else {
         res.status(401).json({ error: "senha" });

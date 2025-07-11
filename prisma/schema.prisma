@@ -25,6 +25,23 @@ enum Status {
   Rascunho
 }
 
+enum CorPerfil {
+  Preto
+  Azul
+  Rosa
+  Amarelo
+}
+
+enum AcessorioPerfil {
+  None
+  Bone
+  Coroa
+  Tiara
+  Cartola
+  Oculos
+  Squirtle
+  Palhaco
+}
 
 model Usuario {
   id Int @id @default(autoincrement())
@@ -37,6 +54,8 @@ model Usuario {
   tipo Tipo?
   adm Boolean
   token String?
+  cor CorPerfil
+  acessorio AcessorioPerfil
   rank Rank? @relation(fields: [rankId], references: [id])
   rankId Int?
   nivel Int?
