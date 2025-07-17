@@ -5,13 +5,11 @@ const secret = process.env.JWT_SECRET;
 
 module.exports.cadastrar = async (req, res) => {
   try {
-    const { nome, sobrenome, email, genero, dataNascimento, usuario, senha } =
-      req.body;
-    const nomeCompleto = nome + " " + sobrenome;
+    const { nome, email, genero, dataNascimento, usuario, senha } = req.body;
     const senhaEncriptada = await bcrypt.hash(senha, 10);
     const novoUsuario = await prisma.usuario.create({
       data: {
-        nome: nomeCompleto,
+        nome,
         email,
         genero,
         nascimento: dataNascimento,
@@ -21,7 +19,7 @@ module.exports.cadastrar = async (req, res) => {
         cor: "Preto",
         acessorio: "None",
         rankId: 1,
-        nivel: 0
+        nivel: 0,
       },
     });
     const payload = {
@@ -43,26 +41,67 @@ module.exports.cadastrar = async (req, res) => {
     const proximoRank = await prisma.rank.findFirst({
       where: { id: usuarioEncontrado.rankId + 1 },
     });
-    res
-      .status(201)
-      .json({
-        nome: usuarioEncontrado.nome,
-        adm: usuarioEncontrado.adm,
-        token: usuarioEncontrado.token,
-        id: usuarioEncontrado.id,
-        email: usuarioEncontrado.email,
-        usuario: usuarioEncontrado.usuario,
-        genero: usuarioEncontrado.genero,
-        nascimento: usuarioEncontrado.nascimento,
-        cor: usuarioEncontrado.cor,
-        acessorio: usuarioEncontrado.acessorio,
-        rank: usuarioEncontrado.rank,
-        nivel: usuarioEncontrado.nivel,
-        proximoRank: proximoRank
-      });
+    res.status(201).json({
+      nome: usuarioEncontrado.nome,
+      adm: usuarioEncontrado.adm,
+      token: usuarioEncontrado.token,
+      id: usuarioEncontrado.id,
+      email: usuarioEncontrado.email,
+      usuario: usuarioEncontrado.usuario,
+      genero: usuarioEncontrado.genero,
+      nascimento: usuarioEncontrado.nascimento,
+      cor: usuarioEncontrado.cor,
+      acessorio: usuarioEncontrado.acessorio,
+      rank: usuarioEncontrado.rank,
+      nivel: usuarioEncontrado.nivel,
+      proximoRank: proximoRank,
+    });
   } catch (error) {
     console.log(error);
     res.status(500).json({ error: "Erro ao criar usuário." });
+  }
+};
+
+module.exports.editar = async (req, res) => {
+  try {
+    const { id, nome, email, genero, dataNascimento, usuario } = req.body;
+    const usuarioEditado = await prisma.usuario.update({
+      where: { id },
+      data: {
+        nome,
+        email,
+        genero,
+        nascimento: dataNascimento,
+        usuario,
+      },
+    });
+    const usuarioEncontrado = await prisma.usuario.findFirst({
+      where: { id },
+      include: {
+        rank: true,
+      },
+    });
+    const proximoRank = await prisma.rank.findFirst({
+      where: { id: usuarioEncontrado.rankId + 1 },
+    });
+    res.status(201).json({
+      nome: usuarioEncontrado.nome,
+      adm: usuarioEncontrado.adm,
+      token: usuarioEncontrado.token,
+      id: usuarioEncontrado.id,
+      email: usuarioEncontrado.email,
+      usuario: usuarioEncontrado.usuario,
+      genero: usuarioEncontrado.genero,
+      nascimento: usuarioEncontrado.nascimento,
+      cor: usuarioEncontrado.cor,
+      acessorio: usuarioEncontrado.acessorio,
+      rank: usuarioEncontrado.rank,
+      nivel: usuarioEncontrado.nivel,
+      proximoRank: proximoRank,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ error: "Erro ao editar usuário." });
   }
 };
 
@@ -96,7 +135,7 @@ module.exports.entrar = async (req, res) => {
           acessorio: usuarioEncontrado.acessorio,
           rank: usuarioEncontrado.rank,
           proximoRank: proximoRank,
-          nivel: usuarioEncontrado.nivel
+          nivel: usuarioEncontrado.nivel,
         });
       } else {
         res.status(401).json({ error: "senha" });

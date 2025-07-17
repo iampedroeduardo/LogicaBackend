@@ -15,5 +15,5 @@ app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });
 
-ngrok.connect({ addr: 3000, authtoken_from_env: true})
-	.then(listener => console.log(`Ingress established at: ${listener.url()}`));
+// ngrok.connect({ addr: 3000, authtoken_from_env: true})
+// 	.then(listener => console.log(`Ingress established at: ${listener.url()}`));
