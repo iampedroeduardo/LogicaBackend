@@ -95,6 +95,7 @@ model MultiplaEscolha {
   nome String
   descricao String
   gabarito String
+  pergunta String
   ativo Boolean
   status Status
   opcao1 String
