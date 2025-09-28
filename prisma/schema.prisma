@@ -18,6 +18,10 @@ enum Tipo {
   Programacao
 }
 
+enum Categoria {
+  Repeticao
+}
+
 enum Status {
   Aprovado
   Negado
@@ -82,8 +86,9 @@ model Algoritmo {
   script String
   ativo Boolean
   status Status
-  rank Rank @relation(fields: [rankId], references: [id])
-  rankId Int
+  categoria Categoria
+  rank Rank? @relation(fields: [rankId], references: [id])
+  rankId Int?
   usuario Usuario @relation(fields: [usuarioId], references: [id])
   usuarioId Int
   errosLacuna ErroLacuna[]
@@ -102,9 +107,9 @@ model MultiplaEscolha {
   opcao2 String
   opcao3 String
   opcao4 String
-  nivel Int
-  rank Rank @relation(fields: [rankId], references: [id])
-  rankId Int
+  nivel Int?
+  rank Rank? @relation(fields: [rankId], references: [id])
+  rankId Int?
   usuario Usuario @relation(fields: [usuarioId], references: [id])
   usuarioId Int
   historicosMultiplaEscolha HistoricoMultiplaEscolha[]
@@ -136,7 +141,7 @@ model ErroLacuna {
   id Int @id @default(autoincrement())
   posicaoInicial Int
   posicaoFinal Int
-  nivel Int
+  nivel Int?
   algoritmo Algoritmo @relation(fields: [algoritmoId], references: [id])
   algoritmoId Int
   distratores Distrator[]

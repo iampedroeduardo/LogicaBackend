@@ -24,7 +24,8 @@ const middleware = (req, res, next) => {
         if (err) {
             return res.status(401).json({ error: 'Token inválido.' });
         }
-        req.userId = decoded.id; 
+        req.admin = decoded.admin;
+        req.userId = decoded.id;
         return next();
     });
 };
