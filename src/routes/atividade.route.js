@@ -5,6 +5,6 @@ const middleware = require('../middleware');
 
 route.post('/atividades/cadastro', middleware, atividadeController.cadastrar)
 route.get('/atividades/ranks', middleware, atividadeController.listarRanks)
-route.get('/atividades/listar/:status', middleware, atividadeController.listarAtividades)
+route.get('/atividades/listar', middleware, atividadeController.listarAtividades)
 
 module.exports = route

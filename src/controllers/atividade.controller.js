@@ -68,7 +68,7 @@ module.exports.cadastrar = async (req, res) => {
             opcaoCorreta = questao.opcao4;
             opcoes.splice(3, 1);
           }
-          console.log(questao.rankId, req.userId)
+          console.log(questao.rankId, req.userId);
           await prisma.multiplaEscolha.create({
             data: {
               nome: questao.nome,
@@ -135,23 +135,51 @@ module.exports.cadastrar = async (req, res) => {
   }
 };
 module.exports.listarAtividades = async (req, res) => {
-  const status = req.params.status;
-  const whereObject = {status: status};
-  if(req.admin){
-    whereObject.usuarioId = req.userId
+  const { pesquisa, rascunhos, aprovadas, negadas, pendentes, minhas } =
+    req.query;
+  const whereObject = {
+    nome: {
+      contains: pesquisa,
+      mode: "insensitive",
+    },
+  };
+  whereObject.OR = [];
+  if (aprovadas === "true") {
+    whereObject.OR.push({ status: "Aprovado" });
   }
-  try{
-    let algoritmos = await prisma.algoritmo.findMany({where: whereObject, select: {id: true, nome: true}})
-    algoritmos = algoritmos.map((x)=> ({...x, type: "codigo"}))
-    let multiplaEscolhas = await prisma.multiplaEscolha.findMany({where: whereObject, select: {id: true, nome: true}})
-    multiplaEscolhas = multiplaEscolhas.map((x)=> ({...x, type: "multiplaEscolha"}))
-    const atividades = [...algoritmos, ...multiplaEscolhas]
-    res.status(200).json(atividades)
-  }catch(error){
-    console.log(error)
+  if (negadas === "true") {
+    whereObject.OR.push({ status: "Negado" });
+  }
+  if (pendentes === "true") {
+    whereObject.OR.push({ status: "Pendente" });
+  }
+  if (rascunhos === "true") {
+    whereObject.OR.push({ status: "Rascunho" });
+  }
+  if (minhas === "true") {
+    whereObject.usuarioId = req.userId;
+  }
+  try {
+    let algoritmos = await prisma.algoritmo.findMany({
+      where: whereObject,
+      select: { id: true, nome: true },
+    });
+    algoritmos = algoritmos.map((x) => ({ ...x, type: "codigo" }));
+    let multiplaEscolhas = await prisma.multiplaEscolha.findMany({
+      where: whereObject,
+      select: { id: true, nome: true },
+    });
+    multiplaEscolhas = multiplaEscolhas.map((x) => ({
+      ...x,
+      type: "multiplaEscolha",
+    }));
+    const atividades = [...algoritmos, ...multiplaEscolhas];
+    res.status(200).json(atividades);
+  } catch (error) {
+    console.log(error);
     res.status(500).json({ error: "Erro interno ao listar as atividades." });
   }
-}
+};
 module.exports.listarRanks = async (req, res) => {
   try {
     const ranks = await prisma.rank.findMany();
