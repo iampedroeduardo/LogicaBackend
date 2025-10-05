@@ -47,110 +47,116 @@ enum AcessorioPerfil {
   Palhaco
 }
 
+enum TipoErroLacuna {
+  Erro
+  Lacuna
+}
+
 model Usuario {
-  id Int @id @default(autoincrement())
-  nome String
-  usuario String @unique
-  genero Genero
-  nascimento DateTime
-  email String @unique
-  senha String
-  tipo Tipo?
-  adm Boolean
-  token String?
-  cor CorPerfil
-  acessorio AcessorioPerfil
-  rank Rank? @relation(fields: [rankId], references: [id])
-  rankId Int?
-  nivel Int?
-  algoritmos Algoritmo[]
-  multiplasEscolhas MultiplaEscolha[]
-  historicosAlgoritmo HistoricoAlgoritmo[]
+  id                        Int                        @id @default(autoincrement())
+  nome                      String
+  usuario                   String                     @unique
+  genero                    Genero
+  nascimento                DateTime
+  email                     String                     @unique
+  senha                     String
+  tipo                      Tipo?
+  adm                       Boolean
+  token                     String?
+  cor                       CorPerfil
+  acessorio                 AcessorioPerfil
+  rank                      Rank?                      @relation(fields: [rankId], references: [id])
+  rankId                    Int?
+  nivel                     Int?
+  algoritmos                Algoritmo[]
+  multiplasEscolhas         MultiplaEscolha[]
+  historicosAlgoritmo       HistoricoAlgoritmo[]
   historicosMultiplaEscolha HistoricoMultiplaEscolha[]
 }
 
 model Rank {
-  id Int @id @default(autoincrement())
-  nome String
-  tipo Tipo
-  cor String
-  algoritmos Algoritmo[]
+  id                Int               @id @default(autoincrement())
+  nome              String
+  tipo              Tipo
+  cor               String
+  algoritmos        Algoritmo[]
   multiplasEscolhas MultiplaEscolha[]
-  usuarios Usuario[]
+  usuarios          Usuario[]
 }
 
 model Algoritmo {
-  id Int @id @default(autoincrement())
-  nome String
-  descricao String
-  script String
-  ativo Boolean
-  status Status
-  categoria Categoria
-  rank Rank? @relation(fields: [rankId], references: [id])
-  rankId Int?
-  usuario Usuario @relation(fields: [usuarioId], references: [id])
-  usuarioId Int
-  errosLacuna ErroLacuna[]
+  id                  Int                  @id @default(autoincrement())
+  nome                String
+  descricao           String?
+  script              String?
+  ativo               Boolean
+  status              Status
+  categoria           Categoria?
+  rank                Rank?                @relation(fields: [rankId], references: [id])
+  rankId              Int?
+  usuario             Usuario              @relation(fields: [usuarioId], references: [id])
+  usuarioId           Int
+  errosLacuna         ErroLacuna[]
   historicosAlgoritmo HistoricoAlgoritmo[]
 }
 
 model MultiplaEscolha {
-  id Int @id @default(autoincrement())
-  nome String
-  descricao String
-  gabarito String
-  pergunta String
-  ativo Boolean
-  status Status
-  opcao1 String
-  opcao2 String
-  opcao3 String
-  opcao4 String
-  nivel Int?
-  rank Rank? @relation(fields: [rankId], references: [id])
-  rankId Int?
-  usuario Usuario @relation(fields: [usuarioId], references: [id])
-  usuarioId Int
+  id                        Int                        @id @default(autoincrement())
+  nome                      String
+  descricao                 String?
+  gabarito                  String?
+  pergunta                  String?
+  ativo                     Boolean
+  status                    Status
+  opcao1                    String?
+  opcao2                    String?
+  opcao3                    String?
+  opcao4                    String?
+  nivel                     Int?
+  rank                      Rank?                      @relation(fields: [rankId], references: [id])
+  rankId                    Int?
+  usuario                   Usuario                    @relation(fields: [usuarioId], references: [id])
+  usuarioId                 Int
   historicosMultiplaEscolha HistoricoMultiplaEscolha[]
 }
 
 model HistoricoAlgoritmo {
-  id Int @id @default(autoincrement())
-  data DateTime
-  acertou Boolean
-  distrator Distrator @relation(fields: [distratorId], references: [id])
+  id          Int       @id @default(autoincrement())
+  data        DateTime
+  acertou     Boolean
+  distrator   Distrator @relation(fields: [distratorId], references: [id])
   distratorId Int
-  algoritmo Algoritmo @relation(fields: [algoritmoId], references: [id])
+  algoritmo   Algoritmo @relation(fields: [algoritmoId], references: [id])
   algoritmoId Int
-  usuario Usuario @relation(fields: [usuarioId], references: [id])
-  usuarioId Int
+  usuario     Usuario   @relation(fields: [usuarioId], references: [id])
+  usuarioId   Int
 }
 
 model HistoricoMultiplaEscolha {
-  id Int @id @default(autoincrement())
-  data DateTime
-  opcao String
-  multiplaEscolha MultiplaEscolha @relation(fields: [multiplaEscolhaId], references: [id])
+  id                Int             @id @default(autoincrement())
+  data              DateTime
+  opcao             String
+  multiplaEscolha   MultiplaEscolha @relation(fields: [multiplaEscolhaId], references: [id])
   multiplaEscolhaId Int
-  usuario Usuario @relation(fields: [usuarioId], references: [id])
-  usuarioId Int
+  usuario           Usuario         @relation(fields: [usuarioId], references: [id])
+  usuarioId         Int
 }
 
 model ErroLacuna {
-  id Int @id @default(autoincrement())
+  id             Int         @id @default(autoincrement())
   posicaoInicial Int
-  posicaoFinal Int
-  nivel Int?
-  algoritmo Algoritmo @relation(fields: [algoritmoId], references: [id])
-  algoritmoId Int
-  distratores Distrator[]
+  posicaoFinal   Int
+  nivel          Int?
+  algoritmo      Algoritmo   @relation(fields: [algoritmoId], references: [id])
+  algoritmoId    Int
+  tipo           TipoErroLacuna
+  distratores    Distrator[]
 }
 
 model Distrator {
-  id Int @id @default(autoincrement())
-  descricao String
-  erroLacuna ErroLacuna @relation(fields: [erroLacunaId], references: [id])
-  erroLacunaId Int
+  id                  Int                  @id @default(autoincrement())
+  descricao           String
+  erroLacuna          ErroLacuna           @relation(fields: [erroLacunaId], references: [id])
+  erroLacunaId        Int
   historicosAlgoritmo HistoricoAlgoritmo[]
 }

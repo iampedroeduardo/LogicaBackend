@@ -120,12 +120,16 @@ module.exports.entrar = async (req, res) => {
     if (usuarioEncontrado) {
       const senhaCorreta = await bcrypt.compare(senha, usuarioEncontrado.senha);
       if (senhaCorreta) {
-        // const payload = { id: usuarioEncontrado.id, email: usuarioEncontrado.email, admin: usuarioEncontrado.adm };
-        // const token = jwt.sign(payload, secret) terminar do jwt???
+        const payload = { id: usuarioEncontrado.id, email: usuarioEncontrado.email, admin: usuarioEncontrado.adm };
+        const token = jwt.sign(payload, secret)
+        const usuarioEditado = await prisma.usuario.update({
+          where: { id: usuarioEncontrado.id },
+          data: { token },
+        });
         res.status(200).json({
           nome: usuarioEncontrado.nome,
           adm: usuarioEncontrado.adm,
-          token: usuarioEncontrado.token,
+          token: token,
           id: usuarioEncontrado.id,
           email: usuarioEncontrado.email,
           usuario: usuarioEncontrado.usuario,
