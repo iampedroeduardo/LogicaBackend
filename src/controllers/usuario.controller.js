@@ -114,14 +114,18 @@ module.exports.entrar = async (req, res) => {
         rank: true,
       },
     });
-    const proximoRank = await prisma.rank.findFirst({
-      where: { id: usuarioEncontrado.rankId + 1 },
-    });
     if (usuarioEncontrado) {
+      const proximoRank = await prisma.rank.findFirst({
+        where: { id: usuarioEncontrado.rankId + 1 },
+      });
       const senhaCorreta = await bcrypt.compare(senha, usuarioEncontrado.senha);
       if (senhaCorreta) {
-        const payload = { id: usuarioEncontrado.id, email: usuarioEncontrado.email, admin: usuarioEncontrado.adm };
-        const token = jwt.sign(payload, secret)
+        const payload = {
+          id: usuarioEncontrado.id,
+          email: usuarioEncontrado.email,
+          admin: usuarioEncontrado.adm,
+        };
+        const token = jwt.sign(payload, secret);
         const usuarioEditado = await prisma.usuario.update({
           where: { id: usuarioEncontrado.id },
           data: { token },

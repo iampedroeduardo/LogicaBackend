@@ -68,61 +68,211 @@ module.exports.cadastrar = async (req, res) => {
             opcaoCorreta = questao.opcao4;
             opcoes.splice(3, 1);
           }
-          console.log(questao.rankId, req.userId);
-          await prisma.multiplaEscolha.create({
-            data: {
-              nome: questao.nome,
-              descricao: questao.descricao,
-              rankId: questao.rankId,
-              opcao1: opcaoCorreta,
-              opcao2: opcoes[0],
-              opcao3: opcoes[1],
-              opcao4: opcoes[2],
-              pergunta: questao.pergunta,
-              gabarito: questao.gabarito,
-              nivel: questao.nivel,
-              ativo: true,
-              status: questao.salvar
-                ? req.admin
-                  ? "Aprovado"
-                  : "Pendente"
-                : "Rascunho",
-              usuarioId: req.userId,
+          const questaoSalva = await prisma.multiplaEscolha.findUnique({
+            where: {
+              id: questao.id,
             },
           });
-        } else if (questao.type === "codigo") {
-          const algoritmo = await prisma.algoritmo.create({
-            data: {
-              nome: questao.nome,
-              descricao: questao.descricao,
-              script: questao.script,
-              rankId: questao.rankId,
-              ativo: true,
-              status: questao.salvar
-                ? req.admin
-                  ? "Aprovado"
-                  : "Pendente"
-                : "Rascunho",
-              usuarioId: req.userId,
-            },
-          });
-          for (const erroLacuna of questao.errosLacuna) {
-            const erroLacunaSalvo = await prisma.erroLacuna.create({
+          if (questaoSalva) {
+            await prisma.multiplaEscolha.update({
+              where: {
+                id: questao.id,
+              },
               data: {
-                algoritmoId: algoritmo.id,
-                tipo: erroLacuna.type === "error" ? "Erro" : "Lacuna",
-                nivel: erroLacuna.nivel,
-                posicaoInicial: erroLacuna.start,
-                posicaoFinal: erroLacuna.end,
+                nome: questao.nome,
+                descricao: questao.descricao,
+                rankId: questao.rankId,
+                opcao1: opcaoCorreta,
+                opcao2: opcoes[0],
+                opcao3: opcoes[1],
+                opcao4: opcoes[2],
+                pergunta: questao.pergunta,
+                gabarito: questao.gabarito,
+                nivel: questao.nivel,
+                status: questao.salvar
+                  ? req.admin
+                    ? "Aprovado"
+                    : "Pendente"
+                  : req.userId === questaoSalva.usuarioId
+                    ? "Rascunho"
+                    : "Negado",
               },
             });
-            for (const distrator of erroLacuna.distratores) {
-              await prisma.distrator.create({
+          } else {
+            await prisma.multiplaEscolha.create({
+              data: {
+                nome: questao.nome,
+                descricao: questao.descricao,
+                rankId: questao.rankId,
+                opcao1: opcaoCorreta,
+                opcao2: opcoes[0],
+                opcao3: opcoes[1],
+                opcao4: opcoes[2],
+                pergunta: questao.pergunta,
+                gabarito: questao.gabarito,
+                nivel: questao.nivel,
+                ativo: true,
+                status: questao.salvar
+                  ? req.admin
+                    ? "Aprovado"
+                    : "Pendente"
+                  : "Rascunho",
+                usuarioId: req.userId,
+              },
+            });
+          }
+        } else if (questao.type === "codigo") {
+          const questaoSalva = await prisma.algoritmo.findUnique({
+            where: {
+              id: questao.id,
+            },
+            include: {
+              errosLacuna: {
+                include: {
+                  distratores: true,
+                },
+              },
+            },
+          });
+          if (questaoSalva) {
+            await prisma.algoritmo.update({
+              where: {
+                id: questao.id,
+              },
+              data: {
+                nome: questao.nome,
+                descricao: questao.descricao,
+                script: questao.script,
+                rankId: questao.rankId,
+                status: questao.salvar
+                  ? req.admin
+                    ? "Aprovado"
+                    : "Pendente"
+                  : req.userId === questaoSalva.usuarioId
+                    ? "Rascunho"
+                    : "Negado",
+              },
+            });
+            for (const erroLacuna of questaoSalva.errosLacuna) {
+              const erroLacunaNova = questao.errosLacuna.find(
+                (x) => x.id === erroLacuna.id
+              );
+              if (!erroLacunaNova) {
+                await prisma.distrator.deleteMany({
+                  where: {
+                    erroLacunaId: erroLacuna.id,
+                  },
+                });
+                await prisma.erroLacuna.delete({
+                  where: {
+                    id: erroLacuna.id,
+                  },
+                });
+              } else {
+                await prisma.erroLacuna.update({
+                  where: {
+                    id: erroLacuna.id,
+                  },
+                  data: {
+                    posicaoFinal: erroLacunaNova.end,
+                    posicaoInicial: erroLacunaNova.start,
+                    nivel: erroLacunaNova.nivel,
+                  },
+                });
+                for (const distrator of erroLacuna.distratores) {
+                  const distratorNovo = erroLacunaNova.distratores.find(
+                    (x) => x.id === distrator.id
+                  );
+                  if (!distratorNovo) {
+                    await prisma.distrator.delete({
+                      where: {
+                        id: distrator.id,
+                      },
+                    });
+                  } else {
+                    await prisma.distrator.update({
+                      where: {
+                        id: distrator.id,
+                      },
+                      data: {
+                        descricao: distratorNovo.text,
+                      },
+                    });
+                  }
+                }
+                for (const distrator of erroLacunaNova.distratores) {
+                  const distratorAntigo = erroLacuna.distratores.find(
+                    (x) => x.id === distrator.id
+                  );
+                  if (!distratorAntigo) {
+                    await prisma.distrator.create({
+                      data: {
+                        descricao: distrator.text,
+                        erroLacunaId: erroLacuna.id,
+                      },
+                    });
+                  }
+                }
+              }
+              for (const erroLacunaNova of questao.errosLacuna) {
+                const erroLacunaAntigo = questaoSalva.errosLacuna.find(
+                  (x) => x.id === erroLacunaNova.id
+                );
+                if (!erroLacunaAntigo) {
+                  const erroLacunaCriado = await prisma.erroLacuna.create({
+                    data: {
+                      algoritmoId: questaoSalva.id,
+                      tipo: erroLacunaNova.type === "error" ? "Erro" : "Lacuna",
+                      nivel: erroLacunaNova.nivel,
+                      posicaoInicial: erroLacunaNova.start,
+                      posicaoFinal: erroLacunaNova.end,
+                    },
+                  });
+                  for (const distrator of erroLacunaNova.distratores) {
+                    await prisma.distrator.create({
+                      data: {
+                        descricao: distrator.text,
+                        erroLacunaId: erroLacunaCriado.id,
+                      },
+                    });
+                  }
+                }
+              }
+            }
+          } else {
+            const algoritmo = await prisma.algoritmo.create({
+              data: {
+                nome: questao.nome,
+                descricao: questao.descricao,
+                script: questao.script,
+                rankId: questao.rankId,
+                ativo: true,
+                status: questao.salvar
+                  ? req.admin
+                    ? "Aprovado"
+                    : "Pendente"
+                  : "Rascunho",
+                usuarioId: req.userId,
+              },
+            });
+            for (const erroLacuna of questao.errosLacuna) {
+              const erroLacunaSalvo = await prisma.erroLacuna.create({
                 data: {
-                  erroLacunaId: erroLacunaSalvo.id,
-                  descricao: distrator.text,
+                  algoritmoId: algoritmo.id,
+                  tipo: erroLacuna.type === "error" ? "Erro" : "Lacuna",
+                  nivel: erroLacuna.nivel,
+                  posicaoInicial: erroLacuna.start,
+                  posicaoFinal: erroLacuna.end,
                 },
               });
+              for (const distrator of erroLacuna.distratores) {
+                await prisma.distrator.create({
+                  data: {
+                    erroLacunaId: erroLacunaSalvo.id,
+                    descricao: distrator.text,
+                  },
+                });
+              }
             }
           }
         }
@@ -178,6 +328,39 @@ module.exports.listarAtividades = async (req, res) => {
   } catch (error) {
     console.log(error);
     res.status(500).json({ error: "Erro interno ao listar as atividades." });
+  }
+};
+module.exports.buscarAlgoritmo = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const algoritmo = await prisma.algoritmo.findUnique({
+      where: { id: parseInt(id) },
+      include: {
+        errosLacuna: {
+          include: {
+            distratores: true,
+          },
+        },
+      },
+    });
+    res.status(200).json(algoritmo);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ error: "Erro interno ao buscar o algoritmo." });
+  }
+};
+module.exports.buscarMultiplaEscolha = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const multiplaEscolha = await prisma.multiplaEscolha.findUnique({
+      where: { id: parseInt(id) },
+    });
+    res.status(200).json(multiplaEscolha);
+  } catch (error) {
+    console.log(error);
+    res
+      .status(500)
+      .json({ error: "Erro interno ao buscar a multipla escolha." });
   }
 };
 module.exports.listarRanks = async (req, res) => {
