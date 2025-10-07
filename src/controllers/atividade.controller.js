@@ -289,7 +289,7 @@ module.exports.cadastrar = async (req, res) => {
   }
 };
 module.exports.listarAtividades = async (req, res) => {
-  const { pesquisa, rascunhos, aprovadas, negadas, pendentes, minhas } =
+  const { pesquisa, rascunhos, aprovadas, negadas, pendentes, minhas, aprovadasFiltro, pendentesFiltro, negadasFiltro } =
     req.query;
   const whereObject = {
     nome: {
@@ -297,22 +297,41 @@ module.exports.listarAtividades = async (req, res) => {
       mode: "insensitive",
     },
   };
-  whereObject.OR = [];
-  if (aprovadas === "true") {
+
+   whereObject.OR = [];
+  const filtroAtivo = aprovadasFiltro === 'true' || pendentesFiltro === "true" || negadasFiltro === "true"
+  //prioridade para filtro!
+  if (filtroAtivo) {
+    if (aprovadasFiltro === 'true') {
+      whereObject.OR.push({ status: "Aprovado" });
+    }
+    if (pendentesFiltro === 'true') {
+      whereObject.OR.push({ status: "Pendente" });
+    }
+    if (negadasFiltro === 'true') {
+      whereObject.OR.push({ status: "Negado" });
+    }
+  } else {
+    if (aprovadas === "true") {
     whereObject.OR.push({ status: "Aprovado" });
+    }
+    if (negadas === "true") {
+      whereObject.OR.push({ status: "Negado" });
+    }
+    if (pendentes === "true") {
+      whereObject.OR.push({ status: "Pendente" });
+    }
   }
-  if (negadas === "true") {
-    whereObject.OR.push({ status: "Negado" });
+   if (rascunhos === "true") {
+      whereObject.OR.push({ status: "Rascunho" });
+    }
+    if (minhas === "true") {
+      whereObject.usuarioId = req.userId;
+    }
+    if (whereObject.OR.length === 0) {
+    delete whereObject.OR;
   }
-  if (pendentes === "true") {
-    whereObject.OR.push({ status: "Pendente" });
-  }
-  if (rascunhos === "true") {
-    whereObject.OR.push({ status: "Rascunho" });
-  }
-  if (minhas === "true") {
-    whereObject.usuarioId = req.userId;
-  }
+
   try {
     let algoritmos = await prisma.algoritmo.findMany({
       where: whereObject,
