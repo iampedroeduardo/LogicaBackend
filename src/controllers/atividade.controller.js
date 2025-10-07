@@ -41,7 +41,6 @@ module.exports.cadastrar = async (req, res) => {
         }
       })
       .filter((x) => x !== undefined);
-    console.log(questoesIncorretas);
     if (questoesIncorretas.length > 0) {
       return res.status(400).json(questoesIncorretas);
     }
@@ -68,36 +67,38 @@ module.exports.cadastrar = async (req, res) => {
             opcaoCorreta = questao.opcao4;
             opcoes.splice(3, 1);
           }
-          const questaoSalva = await prisma.multiplaEscolha.findUnique({
-            where: {
-              id: questao.id,
-            },
-          });
-          if (questaoSalva) {
-            await prisma.multiplaEscolha.update({
+          if (!questao.novo) {
+            const questaoSalva = await prisma.multiplaEscolha.findUnique({
               where: {
                 id: questao.id,
               },
-              data: {
-                nome: questao.nome,
-                descricao: questao.descricao,
-                rankId: questao.rankId,
-                opcao1: opcaoCorreta,
-                opcao2: opcoes[0],
-                opcao3: opcoes[1],
-                opcao4: opcoes[2],
-                pergunta: questao.pergunta,
-                gabarito: questao.gabarito,
-                nivel: questao.nivel,
-                status: questao.salvar
-                  ? req.admin
-                    ? "Aprovado"
-                    : "Pendente"
-                  : req.userId === questaoSalva.usuarioId
-                    ? "Rascunho"
-                    : "Negado",
-              },
             });
+            if (questaoSalva) {
+              await prisma.multiplaEscolha.update({
+                where: {
+                  id: questao.id,
+                },
+                data: {
+                  nome: questao.nome,
+                  descricao: questao.descricao,
+                  rankId: questao.rankId,
+                  opcao1: opcaoCorreta,
+                  opcao2: opcoes[0],
+                  opcao3: opcoes[1],
+                  opcao4: opcoes[2],
+                  pergunta: questao.pergunta,
+                  gabarito: questao.gabarito,
+                  nivel: questao.nivel,
+                  status: questao.salvar
+                    ? req.admin
+                      ? "Aprovado"
+                      : "Pendente"
+                    : req.userId === questaoSalva.usuarioId
+                      ? "Rascunho"
+                      : "Negado",
+                },
+              });
+            }
           } else {
             await prisma.multiplaEscolha.create({
               data: {
@@ -122,119 +123,122 @@ module.exports.cadastrar = async (req, res) => {
             });
           }
         } else if (questao.type === "codigo") {
-          const questaoSalva = await prisma.algoritmo.findUnique({
-            where: {
-              id: questao.id,
-            },
-            include: {
-              errosLacuna: {
-                include: {
-                  distratores: true,
-                },
-              },
-            },
-          });
-          if (questaoSalva) {
-            await prisma.algoritmo.update({
+          if (!questao.novo) {
+            const questaoSalva = await prisma.algoritmo.findUnique({
               where: {
                 id: questao.id,
               },
-              data: {
-                nome: questao.nome,
-                descricao: questao.descricao,
-                script: questao.script,
-                rankId: questao.rankId,
-                status: questao.salvar
-                  ? req.admin
-                    ? "Aprovado"
-                    : "Pendente"
-                  : req.userId === questaoSalva.usuarioId
-                    ? "Rascunho"
-                    : "Negado",
+              include: {
+                errosLacuna: {
+                  include: {
+                    distratores: true,
+                  },
+                },
               },
             });
-            for (const erroLacuna of questaoSalva.errosLacuna) {
-              const erroLacunaNova = questao.errosLacuna.find(
-                (x) => x.id === erroLacuna.id
-              );
-              if (!erroLacunaNova) {
-                await prisma.distrator.deleteMany({
-                  where: {
-                    erroLacunaId: erroLacuna.id,
-                  },
-                });
-                await prisma.erroLacuna.delete({
-                  where: {
-                    id: erroLacuna.id,
-                  },
-                });
-              } else {
-                await prisma.erroLacuna.update({
-                  where: {
-                    id: erroLacuna.id,
-                  },
-                  data: {
-                    posicaoFinal: erroLacunaNova.end,
-                    posicaoInicial: erroLacunaNova.start,
-                    nivel: erroLacunaNova.nivel,
-                  },
-                });
-                for (const distrator of erroLacuna.distratores) {
-                  const distratorNovo = erroLacunaNova.distratores.find(
-                    (x) => x.id === distrator.id
-                  );
-                  if (!distratorNovo) {
-                    await prisma.distrator.delete({
-                      where: {
-                        id: distrator.id,
-                      },
-                    });
-                  } else {
-                    await prisma.distrator.update({
-                      where: {
-                        id: distrator.id,
-                      },
-                      data: {
-                        descricao: distratorNovo.text,
-                      },
-                    });
-                  }
-                }
-                for (const distrator of erroLacunaNova.distratores) {
-                  const distratorAntigo = erroLacuna.distratores.find(
-                    (x) => x.id === distrator.id
-                  );
-                  if (!distratorAntigo) {
-                    await prisma.distrator.create({
-                      data: {
-                        descricao: distrator.text,
-                        erroLacunaId: erroLacuna.id,
-                      },
-                    });
-                  }
-                }
-              }
-              for (const erroLacunaNova of questao.errosLacuna) {
-                const erroLacunaAntigo = questaoSalva.errosLacuna.find(
-                  (x) => x.id === erroLacunaNova.id
+            if (questaoSalva) {
+              await prisma.algoritmo.update({
+                where: {
+                  id: questao.id,
+                },
+                data: {
+                  nome: questao.nome,
+                  descricao: questao.descricao,
+                  script: questao.script,
+                  rankId: questao.rankId,
+                  status: questao.salvar
+                    ? req.admin
+                      ? "Aprovado"
+                      : "Pendente"
+                    : req.userId === questaoSalva.usuarioId
+                      ? "Rascunho"
+                      : "Negado",
+                },
+              });
+              for (const erroLacuna of questaoSalva.errosLacuna) {
+                const erroLacunaNova = questao.errosLacuna.find(
+                  (x) => x.id === erroLacuna.id
                 );
-                if (!erroLacunaAntigo) {
-                  const erroLacunaCriado = await prisma.erroLacuna.create({
-                    data: {
-                      algoritmoId: questaoSalva.id,
-                      tipo: erroLacunaNova.type === "error" ? "Erro" : "Lacuna",
-                      nivel: erroLacunaNova.nivel,
-                      posicaoInicial: erroLacunaNova.start,
-                      posicaoFinal: erroLacunaNova.end,
+                if (!erroLacunaNova) {
+                  await prisma.distrator.deleteMany({
+                    where: {
+                      erroLacunaId: erroLacuna.id,
                     },
                   });
+                  await prisma.erroLacuna.delete({
+                    where: {
+                      id: erroLacuna.id,
+                    },
+                  });
+                } else {
+                  await prisma.erroLacuna.update({
+                    where: {
+                      id: erroLacuna.id,
+                    },
+                    data: {
+                      posicaoFinal: erroLacunaNova.end,
+                      posicaoInicial: erroLacunaNova.start,
+                      nivel: erroLacunaNova.nivel,
+                    },
+                  });
+                  for (const distrator of erroLacuna.distratores) {
+                    const distratorNovo = erroLacunaNova.distratores.find(
+                      (x) => x.id === distrator.id
+                    );
+                    if (!distratorNovo) {
+                      await prisma.distrator.delete({
+                        where: {
+                          id: distrator.id,
+                        },
+                      });
+                    } else {
+                      await prisma.distrator.update({
+                        where: {
+                          id: distrator.id,
+                        },
+                        data: {
+                          descricao: distratorNovo.text,
+                        },
+                      });
+                    }
+                  }
                   for (const distrator of erroLacunaNova.distratores) {
-                    await prisma.distrator.create({
+                    const distratorAntigo = erroLacuna.distratores.find(
+                      (x) => x.id === distrator.id
+                    );
+                    if (!distratorAntigo) {
+                      await prisma.distrator.create({
+                        data: {
+                          descricao: distrator.text,
+                          erroLacunaId: erroLacuna.id,
+                        },
+                      });
+                    }
+                  }
+                }
+                for (const erroLacunaNova of questao.errosLacuna) {
+                  const erroLacunaAntigo = questaoSalva.errosLacuna.find(
+                    (x) => x.id === erroLacunaNova.id
+                  );
+                  if (!erroLacunaAntigo) {
+                    const erroLacunaCriado = await prisma.erroLacuna.create({
                       data: {
-                        descricao: distrator.text,
-                        erroLacunaId: erroLacunaCriado.id,
+                        algoritmoId: questaoSalva.id,
+                        tipo:
+                          erroLacunaNova.type === "error" ? "Erro" : "Lacuna",
+                        nivel: erroLacunaNova.nivel,
+                        posicaoInicial: erroLacunaNova.start,
+                        posicaoFinal: erroLacunaNova.end,
                       },
                     });
+                    for (const distrator of erroLacunaNova.distratores) {
+                      await prisma.distrator.create({
+                        data: {
+                          descricao: distrator.text,
+                          erroLacunaId: erroLacunaCriado.id,
+                        },
+                      });
+                    }
                   }
                 }
               }
