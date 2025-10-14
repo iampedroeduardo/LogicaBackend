@@ -8,5 +8,6 @@ route.get('/atividades/ranks', middleware, atividadeController.listarRanks)
 route.get('/atividades/listar', middleware, atividadeController.listarAtividades)
 route.get('/atividades/algoritmo/:id', middleware, atividadeController.buscarAlgoritmo)
 route.get('/atividades/multiplaEscolha/:id', middleware, atividadeController.buscarMultiplaEscolha)
+route.post('/atividades/trilha', middleware, atividadeController.trilha)
 
 module.exports = route

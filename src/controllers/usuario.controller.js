@@ -24,7 +24,6 @@ module.exports.cadastrar = async (req, res) => {
     });
     const payload = {
       id: novoUsuario.id,
-      email: novoUsuario.email,
       admin: novoUsuario.adm,
     };
     const token = jwt.sign(payload, secret);
@@ -55,6 +54,7 @@ module.exports.cadastrar = async (req, res) => {
       rank: usuarioEncontrado.rank,
       nivel: usuarioEncontrado.nivel,
       proximoRank: proximoRank,
+      xp: usuarioEncontrado.xp,
     });
   } catch (error) {
     console.log(error);
@@ -98,6 +98,7 @@ module.exports.editar = async (req, res) => {
       rank: usuarioEncontrado.rank,
       nivel: usuarioEncontrado.nivel,
       proximoRank: proximoRank,
+      xp: usuarioEncontrado.xp,
     });
   } catch (error) {
     console.log(error);
@@ -122,7 +123,6 @@ module.exports.entrar = async (req, res) => {
       if (senhaCorreta) {
         const payload = {
           id: usuarioEncontrado.id,
-          email: usuarioEncontrado.email,
           admin: usuarioEncontrado.adm,
         };
         const token = jwt.sign(payload, secret);
@@ -144,6 +144,7 @@ module.exports.entrar = async (req, res) => {
           rank: usuarioEncontrado.rank,
           proximoRank: proximoRank,
           nivel: usuarioEncontrado.nivel,
+          xp: usuarioEncontrado.xp,
         });
       } else {
         res.status(401).json({ error: "senha" });
@@ -153,5 +154,38 @@ module.exports.entrar = async (req, res) => {
     }
   } catch (error) {
     console.log(error);
+  }
+};
+
+module.exports.atualizarDados = async (req, res) => {
+  try {
+    const usuarioEncontrado = await prisma.usuario.findFirst({
+      where: { id: req.userId },
+      include: {
+        rank: true,
+      },
+    });
+    const proximoRank = await prisma.rank.findFirst({
+      where: { id: usuarioEncontrado.rankId + 1 },
+    });
+    res.status(200).json({
+      nome: usuarioEncontrado.nome,
+      adm: usuarioEncontrado.adm,
+      token: usuarioEncontrado.token,
+      id: usuarioEncontrado.id,
+      email: usuarioEncontrado.email,
+      usuario: usuarioEncontrado.usuario,
+      genero: usuarioEncontrado.genero,
+      nascimento: usuarioEncontrado.nascimento,
+      cor: usuarioEncontrado.cor,
+      acessorio: usuarioEncontrado.acessorio,
+      rank: usuarioEncontrado.rank,
+      proximoRank: proximoRank,
+      nivel: usuarioEncontrado.nivel,
+      xp: usuarioEncontrado.xp,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ error: "Erro ao buscar dados do usuário." });
   }
 };

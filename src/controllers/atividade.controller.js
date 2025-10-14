@@ -289,8 +289,17 @@ module.exports.cadastrar = async (req, res) => {
   }
 };
 module.exports.listarAtividades = async (req, res) => {
-  const { pesquisa, rascunhos, aprovadas, negadas, pendentes, minhas, aprovadasFiltro, pendentesFiltro, negadasFiltro } =
-    req.query;
+  const {
+    pesquisa,
+    rascunhos,
+    aprovadas,
+    negadas,
+    pendentes,
+    minhas,
+    aprovadasFiltro,
+    pendentesFiltro,
+    negadasFiltro,
+  } = req.query;
   const whereObject = {
     nome: {
       contains: pesquisa,
@@ -298,22 +307,25 @@ module.exports.listarAtividades = async (req, res) => {
     },
   };
 
-   whereObject.OR = [];
-  const filtroAtivo = aprovadasFiltro === 'true' || pendentesFiltro === "true" || negadasFiltro === "true"
+  whereObject.OR = [];
+  const filtroAtivo =
+    aprovadasFiltro === "true" ||
+    pendentesFiltro === "true" ||
+    negadasFiltro === "true";
   //prioridade para filtro!
   if (filtroAtivo) {
-    if (aprovadasFiltro === 'true') {
+    if (aprovadasFiltro === "true") {
       whereObject.OR.push({ status: "Aprovado" });
     }
-    if (pendentesFiltro === 'true') {
+    if (pendentesFiltro === "true") {
       whereObject.OR.push({ status: "Pendente" });
     }
-    if (negadasFiltro === 'true') {
+    if (negadasFiltro === "true") {
       whereObject.OR.push({ status: "Negado" });
     }
   } else {
     if (aprovadas === "true") {
-    whereObject.OR.push({ status: "Aprovado" });
+      whereObject.OR.push({ status: "Aprovado" });
     }
     if (negadas === "true") {
       whereObject.OR.push({ status: "Negado" });
@@ -322,13 +334,13 @@ module.exports.listarAtividades = async (req, res) => {
       whereObject.OR.push({ status: "Pendente" });
     }
   }
-   if (rascunhos === "true") {
-      whereObject.OR.push({ status: "Rascunho" });
-    }
-    if (minhas === "true") {
-      whereObject.usuarioId = req.userId;
-    }
-    if (whereObject.OR.length === 0) {
+  if (rascunhos === "true") {
+    whereObject.OR.push({ status: "Rascunho" });
+  }
+  if (minhas === "true") {
+    whereObject.usuarioId = req.userId;
+  }
+  if (whereObject.OR.length === 0) {
     delete whereObject.OR;
   }
 
@@ -393,5 +405,186 @@ module.exports.listarRanks = async (req, res) => {
   } catch (error) {
     console.log(error);
     res.status(500).json({ error: "Erro interno ao listar os ranks." });
+  }
+};
+module.exports.trilha = async (req, res) => {
+  try {
+    const data = req.body;
+    console.log(data)
+    const usuario = await prisma.usuario.findUnique({
+      where: {
+        id: req.userId,
+      },
+      include: {
+        rank: true,
+      },
+    });
+
+    if (!data.isPrimeiraQuestao) {
+      if (data.questao.tipo == "multiplaEscolha") {
+        const historicoMultiplaEscolha =
+          await prisma.historicoMultiplaEscolha.create({
+            data: {
+              usuarioId: req.userId,
+              multiplaEscolhaId: data.questao.id,
+              opcao: data.questao.opcao,
+              data: new Date(),
+            },
+          });
+        let xp = 0;
+        if (data.questao.opcao === data.questao.opcaoCerta) {
+          // acertou
+          const xpPorNivel =
+            data.questao.nivel === 0 ? 4 : data.questao.nivel === 1 ? 7 : 20;
+          xp = xpPorNivel * 0.1 ** (usuario.rankId - data.questao.rankId);
+        } else {
+          // errou
+          const xpPorNivel =
+            data.questao.nivel === 0 ? -10 : data.questao.nivel === 1 ? -3 : -2;
+          xp = xpPorNivel * 1.05 ** (usuario.rankId - data.questao.rankId);
+        }
+        let xpAtualizado = usuario.xp + xp;
+        if (xpAtualizado >= 100 && usuario.nivel < 2) {
+          usuario.nivel = usuario.nivel + 1;
+          usuario.xp = xpAtualizado - 100;
+        } else if (
+          xpAtualizado >= 100 &&
+          usuario.nivel === 2 &&
+          usuario.tipo === "Programacao" &&
+          usuario.rankId < 8
+        ) {
+          usuario.nivel = 0;
+          usuario.rankId = usuario.rankId + 1;
+          usuario.xp = xpAtualizado - 100;
+        } else if (xpAtualizado <= 0) {
+          usuario.xp = 0;
+        } else if (
+          xpAtualizado >= 100 &&
+          usuario.nivel === 2 &&
+          ((usuario.tipo === "Programacao" && usuario.rankId === 8) ||
+            usuario.tipo === "RaciocinioLogico")
+        ) {
+          xpAtualizado = 100;
+        } else {
+          usuario.xp = xpAtualizado;
+        }
+        const atualizarUsuario = await prisma.usuario.update({
+          where: {
+            id: usuario.id,
+          },
+          data: {
+            xp: xpAtualizado,
+            nivel: usuario.nivel,
+            rankId: usuario.rankId,
+          },
+        });
+      }
+    }
+    if (!data.isUltimaQuestao) {
+      const atividadesDisponiveis = [];
+      const umMesAtras = new Date();
+      umMesAtras.setMonth(umMesAtras.getMonth() - 1);
+      const historicoMultiplaEscolha =
+        await prisma.historicoMultiplaEscolha.findMany({
+          where: {
+            usuarioId: req.userId,
+            data: {
+              gte: umMesAtras,
+            },
+          },
+          select: {
+            multiplaEscolhaId: true,
+          },
+        });
+      if (usuario.rank.tipo === "Programacao") {
+        const algoritmos = await prisma.algoritmo.findMany({
+          where: {
+            rankId: {
+              lte: usuario.rankId,
+            },
+          },
+        });
+      }
+      const multiplaEscolhas = await prisma.multiplaEscolha.findMany({
+        where: {
+          rankId: {
+            lte: usuario.rankId,
+          },
+          id: {
+            notIn: historicoMultiplaEscolha.map((x) => x.multiplaEscolhaId),
+          },
+          ativo: true,
+          status: "Aprovado",
+        },
+      });
+      atividadesDisponiveis.push(
+        ...multiplaEscolhas.map((x) => ({ ...x, type: "multiplaEscolha" }))
+      );
+      const ranksDisponiveis = [];
+      for (const atividade of atividadesDisponiveis) {
+        if (!ranksDisponiveis.includes(atividade.rankId)) {
+          ranksDisponiveis.push(atividade.rankId);
+        }
+      }
+      ranksDisponiveis.sort((a, b) => a - b);
+      const probabilidades = [];
+      for (let i = 0; i < ranksDisponiveis.length; i++) {
+        for (let j = 0; j < 2 ** i; j++) {
+          probabilidades.push(ranksDisponiveis[i]);
+        }
+      }
+      const rankSorteado =
+        probabilidades[Math.floor(Math.random() * probabilidades.length)];
+      const atividadesFinais = atividadesDisponiveis.filter(
+        (x) => x.rankId === rankSorteado
+      );
+      const atividadeSorteada =
+        atividadesFinais[Math.floor(Math.random() * atividadesFinais.length)];
+      if (atividadeSorteada.type === "multiplaEscolha") {
+        const atividadeEnviada = {
+          id: atividadeSorteada.id,
+          nome: atividadeSorteada.nome,
+          descricao: atividadeSorteada.descricao,
+          pergunta: atividadeSorteada.pergunta,
+          gabarito: atividadeSorteada.gabarito,
+          opcoes: ["", "", "", ""],
+          opcaoCerta: null,
+          tipo: "multiplaEscolha",
+          rankId: atividadeSorteada.rankId,
+          nivel: atividadeSorteada.nivel,
+        };
+        const possiveisPosicoes = [0, 1, 2, 3];
+        let posicaoSorteada =
+          possiveisPosicoes[
+            Math.floor(Math.random() * possiveisPosicoes.length)
+          ];
+        possiveisPosicoes.splice(possiveisPosicoes.indexOf(posicaoSorteada), 1);
+        atividadeEnviada.opcoes[posicaoSorteada] = atividadeSorteada.opcao1;
+        atividadeEnviada.opcaoCerta = posicaoSorteada;
+        posicaoSorteada =
+          possiveisPosicoes[
+            Math.floor(Math.random() * possiveisPosicoes.length)
+          ];
+        possiveisPosicoes.splice(possiveisPosicoes.indexOf(posicaoSorteada), 1);
+        atividadeEnviada.opcoes[posicaoSorteada] = atividadeSorteada.opcao2;
+        posicaoSorteada =
+          possiveisPosicoes[
+            Math.floor(Math.random() * possiveisPosicoes.length)
+          ];
+        possiveisPosicoes.splice(possiveisPosicoes.indexOf(posicaoSorteada), 1);
+        atividadeEnviada.opcoes[posicaoSorteada] = atividadeSorteada.opcao3;
+        atividadeEnviada.opcoes[possiveisPosicoes[0]] =
+          atividadeSorteada.opcao4;
+        res.status(200).json(atividadeEnviada);
+      }
+    }
+    else{
+      res.status(200).json(null);
+    }
+  } catch (error) {
+    console.log(error);
+    res
+      .status(500)
+      .json({ error: "Erro interno ao gerar questão para trilha." });
   }
 };

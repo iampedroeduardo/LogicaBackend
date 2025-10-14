@@ -68,6 +68,7 @@ model Usuario {
   rank                      Rank?                      @relation(fields: [rankId], references: [id])
   rankId                    Int?
   nivel                     Int?
+  xp                        Int                        @default(0)
   algoritmos                Algoritmo[]
   multiplasEscolhas         MultiplaEscolha[]
   historicosAlgoritmo       HistoricoAlgoritmo[]
@@ -113,6 +114,7 @@ model MultiplaEscolha {
   opcao3                    String?
   opcao4                    String?
   nivel                     Int?
+  categoria                 Categoria?
   rank                      Rank?                      @relation(fields: [rankId], references: [id])
   rankId                    Int?
   usuario                   Usuario                    @relation(fields: [usuarioId], references: [id])
