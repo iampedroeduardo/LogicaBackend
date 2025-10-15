@@ -410,7 +410,6 @@ module.exports.listarRanks = async (req, res) => {
 module.exports.trilha = async (req, res) => {
   try {
     const data = req.body;
-    console.log(data)
     const usuario = await prisma.usuario.findUnique({
       where: {
         id: req.userId,
@@ -422,15 +421,15 @@ module.exports.trilha = async (req, res) => {
 
     if (!data.isPrimeiraQuestao) {
       if (data.questao.tipo == "multiplaEscolha") {
-        const historicoMultiplaEscolha =
-          await prisma.historicoMultiplaEscolha.create({
-            data: {
-              usuarioId: req.userId,
-              multiplaEscolhaId: data.questao.id,
-              opcao: data.questao.opcao,
-              data: new Date(),
-            },
-          });
+        // const historicoMultiplaEscolha =
+        //   await prisma.historicoMultiplaEscolha.create({
+        //     data: {
+        //       usuarioId: req.userId,
+        //       multiplaEscolhaId: data.questao.id,
+        //       opcao: data.questao.opcao,
+        //       data: new Date(),
+        //     },
+        //   });
         let xp = 0;
         if (data.questao.opcao === data.questao.opcaoCerta) {
           // acertou
@@ -473,7 +472,7 @@ module.exports.trilha = async (req, res) => {
             id: usuario.id,
           },
           data: {
-            xp: xpAtualizado,
+            xp: usuario.xp,
             nivel: usuario.nivel,
             rankId: usuario.rankId,
           },
