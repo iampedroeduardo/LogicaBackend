@@ -420,64 +420,91 @@ module.exports.trilha = async (req, res) => {
     });
 
     if (!data.isPrimeiraQuestao) {
-      if (data.questao.tipo == "multiplaEscolha") {
-        // const historicoMultiplaEscolha =
-        //   await prisma.historicoMultiplaEscolha.create({
-        //     data: {
-        //       usuarioId: req.userId,
-        //       multiplaEscolhaId: data.questao.id,
-        //       opcao: data.questao.opcao,
-        //       data: new Date(),
-        //     },
-        //   });
-        let xp = 0;
-        if (data.questao.opcao === data.questao.opcaoCerta) {
-          // acertou
-          const xpPorNivel =
-            data.questao.nivel === 0 ? 4 : data.questao.nivel === 1 ? 7 : 20;
-          xp = xpPorNivel * 0.1 ** (usuario.rankId - data.questao.rankId);
-        } else {
-          // errou
-          const xpPorNivel =
-            data.questao.nivel === 0 ? -10 : data.questao.nivel === 1 ? -3 : -2;
-          xp = xpPorNivel * 1.05 ** (usuario.rankId - data.questao.rankId);
-        }
-        let xpAtualizado = usuario.xp + xp;
-        if (xpAtualizado >= 100 && usuario.nivel < 2) {
-          usuario.nivel = usuario.nivel + 1;
-          usuario.xp = xpAtualizado - 100;
-        } else if (
-          xpAtualizado >= 100 &&
-          usuario.nivel === 2 &&
-          usuario.tipo === "Programacao" &&
-          usuario.rankId < 8
-        ) {
-          usuario.nivel = 0;
-          usuario.rankId = usuario.rankId + 1;
-          usuario.xp = xpAtualizado - 100;
-        } else if (xpAtualizado <= 0) {
-          usuario.xp = 0;
-        } else if (
-          xpAtualizado >= 100 &&
-          usuario.nivel === 2 &&
-          ((usuario.tipo === "Programacao" && usuario.rankId === 8) ||
-            usuario.tipo === "RaciocinioLogico")
-        ) {
-          xpAtualizado = 100;
-        } else {
-          usuario.xp = xpAtualizado;
-        }
-        const atualizarUsuario = await prisma.usuario.update({
-          where: {
-            id: usuario.id,
-          },
+      if (data.questao.tipo === "multiplaEscolha") {
+        const historicoMultiplaEscolha =
+          await prisma.historicoMultiplaEscolha.create({
+            data: {
+              usuarioId: req.userId,
+              multiplaEscolhaId: data.questao.id,
+              opcao: data.questao.opcao,
+              data: new Date(),
+            },
+          });
+      } else if (data.questao.tipo === "codigo") {
+        const historicoAlgoritmo = await prisma.historicoAlgoritmo.create({
           data: {
-            xp: usuario.xp,
-            nivel: usuario.nivel,
-            rankId: usuario.rankId,
+            usuarioId: req.userId,
+            algoritmoId: data.questao.id,
+            tipo: data.questao.tipoErroLacuna,
+            acertou: data.questao.acertou,
+            data: new Date(),
           },
         });
+        if (data.questao.tipoErroLacuna === "Lacuna") {
+          for (const lacuna of data.questao.lacunas) {
+            const historicoLacuna = await prisma.historicoErroLacuna.create({
+              data: {
+                historicoAlgoritmoId: historicoAlgoritmo.id,
+                erroLacunaId: lacuna.id,
+              },
+            });
+          }
+        } else if (data.questao.tipoErroLacuna === "Erro") {
+          const historicoErro = await prisma.historicoErroLacuna.create({
+            data: {
+              historicoAlgoritmoId: historicoAlgoritmo.id,
+              erroLacunaId: data.questao.espacoErrado.id,
+            },
+          });
+        }
       }
+      let xp = 0;
+      if ((data.questao.opcao === data.questao.opcaoCerta && data.questao.tipo === "multiplaEscolha") || (data.questao.acertou && data.questao.tipo === "codigo")) {
+        // acertou
+        const xpPorNivel =
+          data.questao.nivel === 0 ? 4 : data.questao.nivel === 1 ? 7 : 20;
+        xp = xpPorNivel * 0.1 ** (usuario.rankId - data.questao.rankId);
+      } else {
+        // errou
+        const xpPorNivel =
+          data.questao.nivel === 0 ? -10 : data.questao.nivel === 1 ? -3 : -2;
+        xp = xpPorNivel * 1.05 ** (usuario.rankId - data.questao.rankId);
+      }
+      let xpAtualizado = usuario.xp + xp;
+      if (xpAtualizado >= 100 && usuario.nivel < 2) {
+        usuario.nivel = usuario.nivel + 1;
+        usuario.xp = xpAtualizado - 100;
+      } else if (
+        xpAtualizado >= 100 &&
+        usuario.nivel === 2 &&
+        usuario.tipo === "Programacao" &&
+        usuario.rankId < 8
+      ) {
+        usuario.nivel = 0;
+        usuario.rankId = usuario.rankId + 1;
+        usuario.xp = xpAtualizado - 100;
+      } else if (xpAtualizado <= 0) {
+        usuario.xp = 0;
+      } else if (
+        xpAtualizado >= 100 &&
+        usuario.nivel === 2 &&
+        ((usuario.tipo === "Programacao" && usuario.rankId === 8) ||
+          usuario.tipo === "RaciocinioLogico")
+      ) {
+        xpAtualizado = 100;
+      } else {
+        usuario.xp = xpAtualizado;
+      }
+      const atualizarUsuario = await prisma.usuario.update({
+        where: {
+          id: usuario.id,
+        },
+        data: {
+          xp: usuario.xp,
+          nivel: usuario.nivel,
+          rankId: usuario.rankId,
+        },
+      });
     }
     if (!data.isUltimaQuestao) {
       const atividadesDisponiveis = [];
@@ -496,13 +523,79 @@ module.exports.trilha = async (req, res) => {
           },
         });
       if (usuario.rank.tipo === "Programacao") {
+        const historicoAlgoritmos = await prisma.historicoAlgoritmo.findMany({
+          where: {
+            usuarioId: req.userId,
+          },
+          select: {
+            algoritmoId: true,
+          },
+          orderBy: {
+            data: "desc",
+          },
+          take: 10,
+        });
         const algoritmos = await prisma.algoritmo.findMany({
           where: {
             rankId: {
               lte: usuario.rankId,
             },
+            id: {
+              notIn: historicoAlgoritmos.map((x) => x.algoritmoId),
+            },
+            ativo: true,
+            status: "Aprovado",
+          },
+          include: {
+            errosLacuna: {
+              include: {
+                distratores: true,
+              },
+            },
           },
         });
+        for (const algoritmo of algoritmos) {
+          algoritmo.espacosCertos = [
+            ...algoritmo.errosLacuna.filter((x) => x.tipo === "Erro"),
+          ];
+          const historicos = await prisma.historicoAlgoritmo.findMany({
+            where: {
+              algoritmoId: algoritmo.id,
+              usuarioId: req.userId,
+            },
+            include: {
+              errosLacuna: true,
+            },
+          });
+          algoritmo.espacosErrados = [
+            ...algoritmo.errosLacuna.filter(
+              (x) =>
+                x.tipo === "Erro" &&
+                historicos.filter(
+                  (y) =>
+                    y.tipo === "Erro" &&
+                    y.errosLacuna.find((z) => x.id === z.erroLacunaId)
+                ).length === 0
+            ),
+          ];
+          algoritmo.lacunas = [
+            ...algoritmo.errosLacuna.filter(
+              (x) =>
+                x.tipo === "Lacuna" &&
+                historicos.filter(
+                  (y) =>
+                    y.tipo === "Lacuna" &&
+                    y.errosLacuna.find((z) => x.id === z.erroLacunaId)
+                ).length === 0
+            ),
+          ];
+          if (
+            algoritmo.espacosErrados.length > 0 ||
+            algoritmo.lacunas.length > 1
+          ) {
+            atividadesDisponiveis.push({ ...algoritmo, type: "codigo" });
+          }
+        }
       }
       const multiplaEscolhas = await prisma.multiplaEscolha.findMany({
         where: {
@@ -519,6 +612,9 @@ module.exports.trilha = async (req, res) => {
       atividadesDisponiveis.push(
         ...multiplaEscolhas.map((x) => ({ ...x, type: "multiplaEscolha" }))
       );
+      if (atividadesDisponiveis.length === 0) {
+        return res.status(200).json(null);
+      }
       const ranksDisponiveis = [];
       for (const atividade of atividadesDisponiveis) {
         if (!ranksDisponiveis.includes(atividade.rankId)) {
@@ -575,9 +671,97 @@ module.exports.trilha = async (req, res) => {
         atividadeEnviada.opcoes[possiveisPosicoes[0]] =
           atividadeSorteada.opcao4;
         res.status(200).json(atividadeEnviada);
+      } else if (atividadeSorteada.type === "codigo") {
+        const podeSerLacuna = atividadeSorteada.lacunas.length > 1;
+        const podeSerErro = atividadeSorteada.espacosErrados.length > 0;
+        if (podeSerLacuna && podeSerErro) {
+          const sorteio = Math.floor(Math.random() * 2);
+          if (sorteio === 0) {
+            const espacoErradoSorteado =
+              atividadeSorteada.espacosErrados[
+                Math.floor(
+                  Math.random() * atividadeSorteada.espacosErrados.length
+                )
+              ];
+            const espacosCertosSorteados = atividadeSorteada.espacosCertos
+              .filter((x) => x.id !== espacoErradoSorteado.id)
+              .slice(0, Math.ceil(Math.random() * 3));
+            const atividadeEnviada = {
+              id: atividadeSorteada.id,
+              nome: atividadeSorteada.nome,
+              descricao: atividadeSorteada.descricao,
+              script: atividadeSorteada.script,
+              espacoErrado: espacoErradoSorteado,
+              espacosCertos: espacosCertosSorteados,
+              nivel: espacoErradoSorteado.nivel,
+              tipo: "codigo",
+              tipoErroLacuna: "Erro",
+              rankId: atividadeSorteada.rankId,
+            };
+            res.status(200).json(atividadeEnviada);
+          } else if (sorteio === 1) {
+            const lacunas = atividadeSorteada.lacunas.slice(
+              0,
+              Math.ceil(Math.random() * 4)
+            );
+            const nivelLacunaMaior = Math.max(...lacunas.map((x) => x.nivel));
+            const atividadeEnviada = {
+              id: atividadeSorteada.id,
+              nome: atividadeSorteada.nome,
+              descricao: atividadeSorteada.descricao,
+              script: atividadeSorteada.script,
+              lacunas: lacunas,
+              nivel: nivelLacunaMaior,
+              tipo: "codigo",
+              tipoErroLacuna: "Lacuna",
+              rankId: atividadeSorteada.rankId,
+            };
+            res.status(200).json(atividadeEnviada);
+          }
+        } else if (podeSerLacuna) {
+          const lacunas = atividadeSorteada.lacunas.slice(
+            0,
+            Math.ceil(Math.random() * 4)
+          );
+          const nivelLacunaMaior = Math.max(...lacunas.map((x) => x.nivel));
+          const atividadeEnviada = {
+            id: atividadeSorteada.id,
+            nome: atividadeSorteada.nome,
+            descricao: atividadeSorteada.descricao,
+            script: atividadeSorteada.script,
+            lacunas: lacunas,
+            nivel: nivelLacunaMaior,
+            tipo: "codigo",
+            tipoErroLacuna: "Lacuna",
+            rankId: atividadeSorteada.rankId,
+          };
+          res.status(200).json(atividadeEnviada);
+        } else if (podeSerErro) {
+          const espacoErradoSorteado =
+            atividadeSorteada.espacosErrados[
+              Math.floor(
+                Math.random() * atividadeSorteada.espacosErrados.length
+              )
+            ];
+          const espacosCertosSorteados = atividadeSorteada.espacosCertos
+            .filter((x) => x.id !== espacoErradoSorteado.id)
+            .slice(0, Math.ceil(Math.random() * 3));
+          const atividadeEnviada = {
+            id: atividadeSorteada.id,
+            nome: atividadeSorteada.nome,
+            descricao: atividadeSorteada.descricao,
+            script: atividadeSorteada.script,
+            espacoErrado: espacoErradoSorteado,
+            espacosCertos: espacosCertosSorteados,
+            nivel: espacoErradoSorteado.nivel,
+            tipo: "codigo",
+            tipoErroLacuna: "Erro",
+            rankId: atividadeSorteada.rankId,
+          };
+          res.status(200).json(atividadeEnviada);
+        }
       }
-    }
-    else{
+    } else {
       res.status(200).json(null);
     }
   } catch (error) {

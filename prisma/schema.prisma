@@ -126,12 +126,20 @@ model HistoricoAlgoritmo {
   id          Int       @id @default(autoincrement())
   data        DateTime
   acertou     Boolean
-  distrator   Distrator @relation(fields: [distratorId], references: [id])
-  distratorId Int
+  tipo        TipoErroLacuna
   algoritmo   Algoritmo @relation(fields: [algoritmoId], references: [id])
   algoritmoId Int
   usuario     Usuario   @relation(fields: [usuarioId], references: [id])
   usuarioId   Int
+  errosLacuna HistoricoErroLacuna[]
+}
+
+model HistoricoErroLacuna {
+  id                  Int                  @id @default(autoincrement())
+  historicoId         Int
+  historico           HistoricoAlgoritmo   @relation(fields: [historicoId], references: [id])
+  erroLacunaId        Int
+  erroLacuna          ErroLacuna           @relation(fields: [erroLacunaId], references: [id])
 }
 
 model HistoricoMultiplaEscolha {
@@ -153,6 +161,7 @@ model ErroLacuna {
   algoritmoId    Int
   tipo           TipoErroLacuna
   distratores    Distrator[]
+  historicos     HistoricoErroLacuna[]
 }
 
 model Distrator {
@@ -160,5 +169,4 @@ model Distrator {
   descricao           String
   erroLacuna          ErroLacuna           @relation(fields: [erroLacunaId], references: [id])
   erroLacunaId        Int
-  historicosAlgoritmo HistoricoAlgoritmo[]
 }
