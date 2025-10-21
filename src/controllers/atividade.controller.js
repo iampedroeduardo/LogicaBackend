@@ -444,7 +444,7 @@ module.exports.trilha = async (req, res) => {
           for (const lacuna of data.questao.lacunas) {
             const historicoLacuna = await prisma.historicoErroLacuna.create({
               data: {
-                historicoAlgoritmoId: historicoAlgoritmo.id,
+                historicoId: historicoAlgoritmo.id,
                 erroLacunaId: lacuna.id,
               },
             });
@@ -452,14 +452,18 @@ module.exports.trilha = async (req, res) => {
         } else if (data.questao.tipoErroLacuna === "Erro") {
           const historicoErro = await prisma.historicoErroLacuna.create({
             data: {
-              historicoAlgoritmoId: historicoAlgoritmo.id,
+              historicoId: historicoAlgoritmo.id,
               erroLacunaId: data.questao.espacoErrado.id,
             },
           });
         }
       }
       let xp = 0;
-      if ((data.questao.opcao === data.questao.opcaoCerta && data.questao.tipo === "multiplaEscolha") || (data.questao.acertou && data.questao.tipo === "codigo")) {
+      if (
+        (data.questao.opcao === data.questao.opcaoCerta &&
+          data.questao.tipo === "multiplaEscolha") ||
+        (data.questao.acertou && data.questao.tipo === "codigo")
+      ) {
         // acertou
         const xpPorNivel =
           data.questao.nivel === 0 ? 4 : data.questao.nivel === 1 ? 7 : 20;
@@ -491,7 +495,7 @@ module.exports.trilha = async (req, res) => {
         ((usuario.tipo === "Programacao" && usuario.rankId === 8) ||
           usuario.tipo === "RaciocinioLogico")
       ) {
-        xpAtualizado = 100;
+        usuario.xp = 100;
       } else {
         usuario.xp = xpAtualizado;
       }
@@ -677,7 +681,7 @@ module.exports.trilha = async (req, res) => {
         if (podeSerLacuna && podeSerErro) {
           const sorteio = Math.floor(Math.random() * 2);
           if (sorteio === 0) {
-            const espacoErradoSorteado =
+            let espacoErradoSorteado =
               atividadeSorteada.espacosErrados[
                 Math.floor(
                   Math.random() * atividadeSorteada.espacosErrados.length
@@ -686,6 +690,12 @@ module.exports.trilha = async (req, res) => {
             const espacosCertosSorteados = atividadeSorteada.espacosCertos
               .filter((x) => x.id !== espacoErradoSorteado.id)
               .slice(0, Math.ceil(Math.random() * 3));
+            espacoErradoSorteado.distrator =
+              espacoErradoSorteado.distratores[
+                Math.floor(
+                  Math.random() * espacoErradoSorteado.distratores.length
+                )
+              ];
             const atividadeEnviada = {
               id: atividadeSorteada.id,
               nome: atividadeSorteada.nome,
@@ -737,7 +747,7 @@ module.exports.trilha = async (req, res) => {
           };
           res.status(200).json(atividadeEnviada);
         } else if (podeSerErro) {
-          const espacoErradoSorteado =
+          let espacoErradoSorteado =
             atividadeSorteada.espacosErrados[
               Math.floor(
                 Math.random() * atividadeSorteada.espacosErrados.length
@@ -746,6 +756,12 @@ module.exports.trilha = async (req, res) => {
           const espacosCertosSorteados = atividadeSorteada.espacosCertos
             .filter((x) => x.id !== espacoErradoSorteado.id)
             .slice(0, Math.ceil(Math.random() * 3));
+          espacoErradoSorteado.distrator =
+            espacoErradoSorteado.distratores[
+              Math.floor(
+                Math.random() * espacoErradoSorteado.distratores.length
+              )
+            ];
           const atividadeEnviada = {
             id: atividadeSorteada.id,
             nome: atividadeSorteada.nome,
