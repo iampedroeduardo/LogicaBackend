@@ -68,7 +68,7 @@ model Usuario {
   rank                      Rank?                      @relation(fields: [rankId], references: [id])
   rankId                    Int?
   nivel                     Int?
-  xp                        Int                        @default(0)
+  xp                        Float                        @default(0)
   algoritmos                Algoritmo[]
   multiplasEscolhas         MultiplaEscolha[]
   historicosAlgoritmo       HistoricoAlgoritmo[]

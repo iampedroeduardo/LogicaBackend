@@ -711,9 +711,9 @@ module.exports.trilha = async (req, res) => {
             res.status(200).json(atividadeEnviada);
           } else if (sorteio === 1) {
             const lacunas = atividadeSorteada.lacunas.slice(
-              0,
-              Math.ceil(Math.random() * 4)
-            );
+            0,
+            1 + (Math.ceil(Math.random() * 3))
+          );
             const nivelLacunaMaior = Math.max(...lacunas.map((x) => x.nivel));
             const atividadeEnviada = {
               id: atividadeSorteada.id,
@@ -731,7 +731,7 @@ module.exports.trilha = async (req, res) => {
         } else if (podeSerLacuna) {
           const lacunas = atividadeSorteada.lacunas.slice(
             0,
-            Math.ceil(Math.random() * 4)
+            1 + (Math.ceil(Math.random() * 3))
           );
           const nivelLacunaMaior = Math.max(...lacunas.map((x) => x.nivel));
           const atividadeEnviada = {
