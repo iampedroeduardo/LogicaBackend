@@ -467,13 +467,23 @@ module.exports.trilha = async (req, res) => {
         // acertou
         const xpPorNivel =
           data.questao.nivel === 0 ? 4 : data.questao.nivel === 1 ? 7 : 20;
-        xp = xpPorNivel * 0.1 ** (usuario.rankId - data.questao.rankId);
+          if(xpPorNivel === 4) {
+            xp = xpPorNivel;
+          } else {
+            xp = xpPorNivel - (xpPorNivel * 0.1 * (usuario.rankId - data.questao.rankId));
+          }
       } else {
         // errou
         const xpPorNivel =
           data.questao.nivel === 0 ? -10 : data.questao.nivel === 1 ? -3 : -2;
-        xp = xpPorNivel * 1.05 ** (usuario.rankId - data.questao.rankId);
+        if(xpPorNivel === -10) {
+          xp = xpPorNivel;
+        } else {
+          xp = xpPorNivel + (xpPorNivel * 0.1 ** (usuario.rankId - data.questao.rankId));
+        }
       }
+      xp = xp.toFixed(1);
+      xp = parseFloat(xp);
       let xpAtualizado = usuario.xp + xp;
       if (xpAtualizado >= 100 && usuario.nivel < 2) {
         usuario.nivel = usuario.nivel + 1;
@@ -482,7 +492,7 @@ module.exports.trilha = async (req, res) => {
         xpAtualizado >= 100 &&
         usuario.nivel === 2 &&
         usuario.tipo === "Programacao" &&
-        usuario.rankId < 8
+        usuario.rankId < 9
       ) {
         usuario.nivel = 0;
         usuario.rankId = usuario.rankId + 1;
@@ -492,7 +502,7 @@ module.exports.trilha = async (req, res) => {
       } else if (
         xpAtualizado >= 100 &&
         usuario.nivel === 2 &&
-        ((usuario.tipo === "Programacao" && usuario.rankId === 8) ||
+        ((usuario.tipo === "Programacao" && usuario.rankId === 9) ||
           usuario.tipo === "RaciocinioLogico")
       ) {
         usuario.xp = 100;
