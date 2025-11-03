@@ -189,3 +189,21 @@ module.exports.atualizarDados = async (req, res) => {
     res.status(500).json({ error: "Erro ao buscar dados do usuário." });
   }
 };
+
+module.exports.ranking = async (req, res) => {
+  try {
+    const { cursor, acima, abaixo } = req.params;
+    const ranking = await prisma.$queryRawUnsafe(`
+      WITH ranking AS (SELECT u."id" as id, u."usuario" as usuario, u."xp" as xp, u."rankId" as rankId, u."nivel" as nivel, r."nome" as rankNome, r."cor" as rankCor, ROW_NUMBER() OVER (ORDER BY u."rankId" DESC, u."nivel" DESC, u."xp" DESC) AS posicao from "Usuario" AS u LEFT JOIN "Rank" AS r ON u."rankId" = r."id") SELECT * FROM ranking WHERE posicao BETWEEN (SELECT posicao - ${acima} FROM ranking where id = ${cursor}) AND (SELECT posicao + ${abaixo} FROM ranking where id = ${cursor})
+    `);
+    // JSON.stringify não consegue serializar BigInt, então precisamos convertê-lo.
+    const rankingComBigIntConvertido = ranking.map((item) => ({
+      ...item,
+      posicao: item.posicao.toString(),
+    }));
+    res.status(200).json(rankingComBigIntConvertido);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ error: "Erro ao buscar ranking." });
+  }
+};
