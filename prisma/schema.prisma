@@ -19,7 +19,26 @@ enum Tipo {
 }
 
 enum Categoria {
-  Repeticao
+  Variaveis
+  Condicionais
+  Operadores
+  LacosDeRepeticao
+  Strings
+  Vetores
+  Funcoes
+  Avancado
+  RaciocinioLogico
+  
+  proposicoes
+  conectivosLogicos
+  tabelasVerdade
+  equivalenciasLogicas
+  diagramasVenn
+  argumentosValidos
+  sequenciasLogicas
+  padroesNumericos
+  analiseCombinatoria
+  probabilidade
 }
 
 enum Status {
@@ -58,7 +77,7 @@ model Usuario {
   usuario                   String                     @unique
   genero                    Genero
   nascimento                DateTime
-  email                     String                     @unique
+  email                     String                     @unique 
   senha                     String
   tipo                      Tipo?
   adm                       Boolean
@@ -80,6 +99,7 @@ model Rank {
   nome              String
   tipo              Tipo
   cor               String
+  categoria         Categoria         @unique 
   algoritmos        Algoritmo[]
   multiplasEscolhas MultiplaEscolha[]
   usuarios          Usuario[]
