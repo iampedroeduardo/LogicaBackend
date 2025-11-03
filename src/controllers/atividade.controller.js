@@ -1,4 +1,5 @@
-const prisma = require("../prisma/client");
+const { PrismaClient } = require("@prisma/client");
+const prisma = new PrismaClient();
 
 module.exports.cadastrar = async (req, res) => {
   try {
@@ -82,6 +83,7 @@ module.exports.cadastrar = async (req, res) => {
                   nome: questao.nome,
                   descricao: questao.descricao,
                   rankId: questao.rankId,
+                  categoria: questao.categoria,
                   opcao1: opcaoCorreta,
                   opcao2: opcoes[0],
                   opcao3: opcoes[1],
@@ -105,6 +107,7 @@ module.exports.cadastrar = async (req, res) => {
                 nome: questao.nome,
                 descricao: questao.descricao,
                 rankId: questao.rankId,
+                categoria: questao.categoria,
                 opcao1: opcaoCorreta,
                 opcao2: opcoes[0],
                 opcao3: opcoes[1],
@@ -136,6 +139,10 @@ module.exports.cadastrar = async (req, res) => {
                 },
               },
             });
+            const rank = await prisma.rank.findUnique({
+              where: { id: questao.rankId },
+            });
+
             if (questaoSalva) {
               await prisma.algoritmo.update({
                 where: {
@@ -146,6 +153,7 @@ module.exports.cadastrar = async (req, res) => {
                   descricao: questao.descricao,
                   script: questao.script,
                   rankId: questao.rankId,
+                  categoria: rank.categoria,
                   status: questao.salvar
                     ? req.admin
                       ? "Aprovado"
@@ -244,12 +252,16 @@ module.exports.cadastrar = async (req, res) => {
               }
             }
           } else {
+            const rank = await prisma.rank.findUnique({
+              where: { id: questao.rankId },
+            });
             const algoritmo = await prisma.algoritmo.create({
               data: {
                 nome: questao.nome,
                 descricao: questao.descricao,
                 script: questao.script,
                 rankId: questao.rankId,
+                categoria: rank.categoria,
                 ativo: true,
                 status: questao.salvar
                   ? req.admin
@@ -400,16 +412,33 @@ module.exports.buscarMultiplaEscolha = async (req, res) => {
 };
 module.exports.listarRanks = async (req, res) => {
   try {
-    const ranks = await prisma.rank.findMany();
-    res.status(200).json(ranks);
+    const { rankId } = req.query;
+    let where = {};
+
+    // Se um rankId for fornecido
+    if (rankId) {
+      where.id = { lte: parseInt(rankId) }; //pega os anteriores a ele
+    }
+    const ranks = await prisma.rank.findMany({ where: where, orderBy: { id: 'asc' } });
+    res.status(200).json(ranks)
   } catch (error) {
     console.log(error);
     res.status(500).json({ error: "Erro interno ao listar os ranks." });
   }
 };
+module.exports.listarCategoriasRaciocinio = async (req, res) => {
+  try {
+    // Retorna todos os valores do enum 'Categoria'
+    const todasAsCategorias = Object.values(conteudoRaciocinioLogico);
+    res.status(200).json(todasAsCategorias);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ error: "Erro interno ao listar as categorias." });
+  }
+};
 module.exports.trilha = async (req, res) => {
   try {
-    const data = req.body;
+    const {categoria, ...data} = req.body;
     const usuario = await prisma.usuario.findUnique({
       where: {
         id: req.userId,
@@ -559,6 +588,9 @@ module.exports.trilha = async (req, res) => {
             },
             ativo: true,
             status: "Aprovado",
+            ...(categoria && {
+              rank: {categoria: categoria}
+            })
           },
           include: {
             errosLacuna: {
@@ -621,6 +653,9 @@ module.exports.trilha = async (req, res) => {
           },
           ativo: true,
           status: "Aprovado",
+          ...(categoria && {
+            categoria: categoria,
+          }),
         },
       });
       atividadesDisponiveis.push(
