@@ -6,6 +6,58 @@ const secret = process.env.JWT_SECRET;
 module.exports.cadastrar = async (req, res) => {
   try {
     const { nome, email, genero, dataNascimento, usuario, senha } = req.body;
+
+    // Validations
+    if (!nome || nome.trim().length < 3) {
+      return res.status(400).json({ error: "O nome deve ter pelo menos 3 caracteres." });
+    }
+
+    if (!usuario || usuario.trim().length < 3) {
+      return res.status(400).json({ error: "O usuário deve ter pelo menos 3 caracteres." });
+    }
+
+    if (!email || !email.includes("@") || email.trim().length < 10) {
+      return res.status(400).json({ error: "E-mail inválido." });
+    }
+
+    if (!dataNascimento) {
+      return res.status(400).json({ error: "Data de nascimento é obrigatória." });
+    }
+
+    const dataNasc = new Date(dataNascimento);
+    const ano = dataNasc.getFullYear();
+    const mes = dataNasc.getMonth() + 1;
+    const dia = dataNasc.getDate();
+
+    if (
+      isNaN(dataNasc.getTime()) ||
+      ano < 1900 ||
+      ano > new Date().getFullYear() ||
+      mes < 1 ||
+      mes > 12 ||
+      dia < 1 ||
+      dia > 31 ||
+      ([4, 6, 9, 11].includes(mes) && dia > 30) ||
+      (mes === 2 && dia > 29)
+    ) {
+      return res.status(400).json({ error: "Data de nascimento inválida." });
+    }
+
+    if (genero == null) {
+      return res.status(400).json({ error: "Gênero é obrigatório." });
+    }
+
+    if (
+      !senha ||
+      !senha.match(/[0-9]/g) ||
+      !senha.match(/[A-Z]/g) ||
+      !senha.match(/[a-z]/g) ||
+      !senha.match(/[\W|_]/g) ||
+      senha.length < 8
+    ) {
+      return res.status(400).json({ error: "A senha não atende aos requisitos mínimos de segurança." });
+    }
+
     const senhaEncriptada = await bcrypt.hash(senha, 10);
     const novoUsuario = await prisma.usuario.create({
       data: {
