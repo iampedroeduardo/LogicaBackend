@@ -74,6 +74,18 @@ module.exports.cadastrar = async (req, res) => {
         nivel: 0,
       },
     });
+    const usuarioCor = await prisma.usuarioCores.create({
+      data: {
+        usuarioId: novoUsuario.id,
+        cor: novoUsuario.cor,
+      },
+    })
+    const usuarioAcessorio = await prisma.usuarioAcessorios.create({
+      data: {
+        usuarioId: novoUsuario.id,
+        acessorio: novoUsuario.acessorio,
+      },
+    })
     const payload = {
       id: novoUsuario.id,
       admin: novoUsuario.adm,
@@ -87,6 +99,8 @@ module.exports.cadastrar = async (req, res) => {
       where: { id: novoUsuario.id },
       include: {
         rank: true,
+        cores: true,
+        acessorios: true,
       },
     });
     const proximoRank = await prisma.rank.findFirst({
@@ -107,6 +121,8 @@ module.exports.cadastrar = async (req, res) => {
       nivel: usuarioEncontrado.nivel,
       proximoRank: proximoRank,
       xp: usuarioEncontrado.xp,
+      cores: usuarioEncontrado.cores,
+      acessorios: usuarioEncontrado.acessorios,
     });
   } catch (error) {
     console.log(error);
@@ -116,7 +132,7 @@ module.exports.cadastrar = async (req, res) => {
 
 module.exports.editar = async (req, res) => {
   try {
-    const { id, nome, email, genero, dataNascimento, usuario } = req.body;
+    const { id, nome, email, genero, dataNascimento, usuario, cor, acessorio } = req.body;
     const usuarioEditado = await prisma.usuario.update({
       where: { id },
       data: {
@@ -125,12 +141,16 @@ module.exports.editar = async (req, res) => {
         genero,
         nascimento: dataNascimento,
         usuario,
+        cor,
+        acessorio,
       },
     });
     const usuarioEncontrado = await prisma.usuario.findFirst({
       where: { id },
       include: {
         rank: true,
+        cores: true,
+        acessorios: true,
       },
     });
     const proximoRank = await prisma.rank.findFirst({
@@ -151,6 +171,8 @@ module.exports.editar = async (req, res) => {
       nivel: usuarioEncontrado.nivel,
       proximoRank: proximoRank,
       xp: usuarioEncontrado.xp,
+      cores: usuarioEncontrado.cores,
+      acessorios: usuarioEncontrado.acessorios,
     });
   } catch (error) {
     console.log(error);
@@ -165,6 +187,8 @@ module.exports.entrar = async (req, res) => {
       where: { OR: [{ usuario: usuario }, { email: usuario }] },
       include: {
         rank: true,
+        cores: true,
+        acessorios: true,
       },
     });
     if (usuarioEncontrado) {
@@ -197,6 +221,8 @@ module.exports.entrar = async (req, res) => {
           proximoRank: proximoRank,
           nivel: usuarioEncontrado.nivel,
           xp: usuarioEncontrado.xp,
+          cores: usuarioEncontrado.cores,
+          acessorios: usuarioEncontrado.acessorios,
         });
       } else {
         res.status(401).json({ error: "senha" });
@@ -215,6 +241,8 @@ module.exports.atualizarDados = async (req, res) => {
       where: { id: req.userId },
       include: {
         rank: true,
+        cores: true,
+        acessorios: true,
       },
     });
     const proximoRank = await prisma.rank.findFirst({
@@ -235,6 +263,8 @@ module.exports.atualizarDados = async (req, res) => {
       proximoRank: proximoRank,
       nivel: usuarioEncontrado.nivel,
       xp: usuarioEncontrado.xp,
+      cores: usuarioEncontrado.cores,
+      acessorios: usuarioEncontrado.acessorios,
     });
   } catch (error) {
     console.log(error);
