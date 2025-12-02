@@ -11,10 +11,10 @@ module.exports.cadastrar = async (req, res) => {
             window.salvar &&
             (window.nome.trim().length === 0 ||
               window.pergunta.trim().length === 0 ||
-              window.opcao1.trim().length === 0 ||
-              window.opcao2.trim().length === 0 ||
-              window.opcao3.trim().length === 0 ||
-              window.opcao4.trim().length === 0 ||
+              window.opcao1.trim().length === 0 || window.opcao1.trim().length > 60 ||
+              window.opcao2.trim().length === 0 || window.opcao2.trim().length > 60 ||
+              window.opcao3.trim().length === 0 || window.opcao3.trim().length > 60 ||
+              window.opcao4.trim().length === 0 || window.opcao4.trim().length > 60 ||
               window.opcaoCorreta.length === 0 ||
               window.gabarito.trim().length === 0 ||
               window.descricao.trim().length === 0 ||
@@ -525,6 +525,55 @@ module.exports.trilha = async (req, res) => {
       ) {
         usuario.nivel = 0;
         usuario.rankId = usuario.rankId + 1;
+        if(usuario.rankId === 2){
+          const novoUsuarioCor = await prisma.usuarioCores.createMany({
+            data: [{
+              usuarioId: usuario.id,
+              cor: "Azul"
+            },{
+              usuarioId: usuario.id,
+              cor: "Rosa"
+            },{
+              usuarioId: usuario.id,
+              cor: "Amarelo"
+            }]
+          })
+        }else if(usuario.rankId === 3){
+          const novoUsuarioAcessorio = await prisma.usuarioAcessorios.create({
+            usuarioId: usuario.id,
+            acessorio: "Bone"
+          })
+        }else if(usuario.rankId === 4){
+          const novoUsuarioAcessorio = await prisma.usuarioAcessorios.create({
+            usuarioId: usuario.id,
+            acessorio: "Oculos"
+          })
+        }else if(usuario.rankId === 5){
+          const novoUsuarioAcessorio = await prisma.usuarioAcessorios.create({
+            usuarioId: usuario.id,
+            acessorio: "Palhaco"
+          })
+        }else if(usuario.rankId === 6){
+          const novoUsuarioAcessorio = await prisma.usuarioAcessorios.create({
+            usuarioId: usuario.id,
+            acessorio: "Squirtle"
+          })
+        }else if(usuario.rankId === 3){
+          const novoUsuarioAcessorio = await prisma.usuarioAcessorios.create({
+            usuarioId: usuario.id,
+            acessorio: "Cartola"
+          })
+        }else if(usuario.rankId === 3){
+          const novoUsuarioAcessorio = await prisma.usuarioAcessorios.create({
+            usuarioId: usuario.id,
+            acessorio: "Tiara"
+          })
+        }else if(usuario.rankId === 3){
+          const novoUsuarioAcessorio = await prisma.usuarioAcessorios.create({
+            usuarioId: usuario.id,
+            acessorio: "Coroa"
+          })
+        }
         usuario.xp = xpAtualizado - 100;
       } else if (xpAtualizado <= 0) {
         usuario.xp = 0;

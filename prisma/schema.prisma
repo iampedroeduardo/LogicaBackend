@@ -92,6 +92,22 @@ model Usuario {
   multiplasEscolhas         MultiplaEscolha[]
   historicosAlgoritmo       HistoricoAlgoritmo[]
   historicosMultiplaEscolha HistoricoMultiplaEscolha[]
+  cores                     UsuarioCores[]
+  acessorios                UsuarioAcessorios[]
+}
+
+model UsuarioCores {
+  id Int @id @default(autoincrement())
+  cor CorPerfil
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+  usuarioId Int
+}
+
+model UsuarioAcessorios {
+  id Int @id @default(autoincrement())
+  acessorio AcessorioPerfil
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+  usuarioId Int
 }
 
 model Rank {
