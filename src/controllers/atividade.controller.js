@@ -1,9 +1,30 @@
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
+const multer = require("multer");
+const path = require("path");
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    // O ideal é que este diretório seja servido estaticamente pelo seu Express.
+    cb(null, "public/uploads/fotosPerfil/");
+  },
+  filename: function (req, file, cb) {
+    // Garante um nome de arquivo único adicionando um timestamp.
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, file.fieldname + "-" + uniqueSuffix + path.extname(file.originalname));
+  },
+});
+
+const upload = multer({ storage: storage });
+
+// Middleware para aceitar qualquer arquivo enviado no formulário.
+// Os arquivos estarão em `req.files`.
+module.exports.uploadImagens = upload.any();
 
 module.exports.cadastrar = async (req, res) => {
   try {
-    const { questoes } = req.body;
+    // Os dados chegam como string, então precisamos fazer o parse.
+    const questoes = JSON.parse(req.body.questoes);
     const questoesIncorretas = questoes
       .map((window) => {
         if (
@@ -11,10 +32,14 @@ module.exports.cadastrar = async (req, res) => {
             window.salvar &&
             (window.nome.trim().length === 0 ||
               window.pergunta.trim().length === 0 ||
-              window.opcao1.trim().length === 0 || window.opcao1.trim().length > 60 ||
-              window.opcao2.trim().length === 0 || window.opcao2.trim().length > 60 ||
-              window.opcao3.trim().length === 0 || window.opcao3.trim().length > 60 ||
-              window.opcao4.trim().length === 0 || window.opcao4.trim().length > 60 ||
+              window.opcao1.trim().length === 0 ||
+              window.opcao1.trim().length > 60 ||
+              window.opcao2.trim().length === 0 ||
+              window.opcao2.trim().length > 60 ||
+              window.opcao3.trim().length === 0 ||
+              window.opcao3.trim().length > 60 ||
+              window.opcao4.trim().length === 0 ||
+              window.opcao4.trim().length > 60 ||
               window.opcaoCorreta.length === 0 ||
               window.gabarito.trim().length === 0 ||
               window.descricao.trim().length === 0 ||
@@ -48,6 +73,12 @@ module.exports.cadastrar = async (req, res) => {
     await prisma.$transaction(async (prisma) => {
       for (const questao of questoes) {
         if (questao.type === "multiplaEscolha") {
+          // Exemplo de como associar uma imagem à questão.
+          // Supondo que o frontend envie o nome do campo da imagem (ex: 'imagem_0') na própria questão.
+          const imagemAssociada = req.files.find(file => file.fieldname === questao.campoImagem);
+          const caminhoImagem = imagemAssociada ? imagemAssociada.path : null;
+          // Agora você pode salvar `caminhoImagem` no banco de dados.
+
           const opcoes = [
             questao.opcao1,
             questao.opcao2,
@@ -97,7 +128,8 @@ module.exports.cadastrar = async (req, res) => {
                       : "Pendente"
                     : req.userId === questaoSalva.usuarioId
                       ? "Rascunho"
-                      : "Negado",
+                      : "Negado", // Adicionar o campo da imagem aqui se for editar
+                  // foto: caminhoImagem,
                 },
               });
             }
@@ -121,6 +153,7 @@ module.exports.cadastrar = async (req, res) => {
                     ? "Aprovado"
                     : "Pendente"
                   : "Rascunho",
+                // foto: caminhoImagem, // Adicionar o campo da imagem aqui
                 usuarioId: req.userId,
               },
             });
@@ -419,8 +452,11 @@ module.exports.listarRanks = async (req, res) => {
     if (rankId) {
       where.id = { lte: parseInt(rankId) }; //pega os anteriores a ele
     }
-    const ranks = await prisma.rank.findMany({ where: where, orderBy: { id: 'asc' } });
-    res.status(200).json(ranks)
+    const ranks = await prisma.rank.findMany({
+      where: where,
+      orderBy: { id: "asc" },
+    });
+    res.status(200).json(ranks);
   } catch (error) {
     console.log(error);
     res.status(500).json({ error: "Erro interno ao listar os ranks." });
@@ -438,7 +474,7 @@ module.exports.listarCategoriasRaciocinio = async (req, res) => {
 };
 module.exports.trilha = async (req, res) => {
   try {
-    const {categoria, ...data} = req.body;
+    const { categoria, ...data } = req.body;
     const usuario = await prisma.usuario.findUnique({
       where: {
         id: req.userId,
@@ -449,6 +485,53 @@ module.exports.trilha = async (req, res) => {
     });
 
     if (!data.isPrimeiraQuestao) {
+      const historicoAlgoritmoOntem =
+        await prisma.historicoAlgoritmo.findFirst({
+          where: {
+            usuarioId: req.userId,
+            data: {
+              gt: new Date(new Date().setDate(new Date().getDate() - 1)),
+              lt: new Date(),
+            },
+          },
+        });
+      const historicoMultiplaEscolhaOntem =
+        await prisma.historicoMultiplaEscolha.findFirst({
+          where: {
+            usuarioId: req.userId,
+            data:{
+              gt: new Date(new Date().setDate(new Date().getDate() - 1)),
+              lt: new Date(),
+            }
+          },
+        });
+      const historicoAlgoritmoHoje =
+        await prisma.historicoAlgoritmo.findFirst({
+          where: {
+            usuarioId: req.userId,
+            data: {
+              gt: new Date(),
+            },
+          },
+        });
+      const historicoMultiplaEscolhaHoje =
+        await prisma.historicoMultiplaEscolha.findFirst({
+          where: {
+            usuarioId: req.userId,
+            data:{
+              gt: new Date(),
+            }
+          },
+        });
+      if (historicoAlgoritmoOntem || historicoMultiplaEscolhaOntem && !historicoAlgoritmoHoje && !historicoMultiplaEscolhaHoje) {
+        usuario.ofensiva++;
+      }
+      else if(!historicoAlgoritmoOntem && !historicoMultiplaEscolhaOntem && !historicoAlgoritmoHoje && !historicoMultiplaEscolhaHoje){
+        usuario.ofensiva = 1;
+      }
+      if (usuario.ofensiva > usuario.recordeOfensiva){
+        usuario.recordeOfensiva = usuario.ofensiva;
+      }
       if (data.questao.tipo === "multiplaEscolha") {
         const historicoMultiplaEscolha =
           await prisma.historicoMultiplaEscolha.create({
@@ -496,19 +579,23 @@ module.exports.trilha = async (req, res) => {
         // acertou
         const xpPorNivel =
           data.questao.nivel === 0 ? 4 : data.questao.nivel === 1 ? 7 : 20;
-          if(xpPorNivel === 4) {
-            xp = xpPorNivel;
-          } else {
-            xp = xpPorNivel - (xpPorNivel * 0.1 * (usuario.rankId - data.questao.rankId));
-          }
+        if (xpPorNivel === 4) {
+          xp = xpPorNivel;
+        } else {
+          xp =
+            xpPorNivel -
+            xpPorNivel * 0.1 * (usuario.rankId - data.questao.rankId);
+        }
       } else {
         // errou
         const xpPorNivel =
           data.questao.nivel === 0 ? -10 : data.questao.nivel === 1 ? -3 : -2;
-        if(xpPorNivel === -10) {
+        if (xpPorNivel === -10) {
           xp = xpPorNivel;
         } else {
-          xp = xpPorNivel + (xpPorNivel * 0.1 ** (usuario.rankId - data.questao.rankId));
+          xp =
+            xpPorNivel +
+            xpPorNivel * 0.1 ** (usuario.rankId - data.questao.rankId);
         }
       }
       xp = xp.toFixed(1);
@@ -525,54 +612,58 @@ module.exports.trilha = async (req, res) => {
       ) {
         usuario.nivel = 0;
         usuario.rankId = usuario.rankId + 1;
-        if(usuario.rankId === 2){
+        if (usuario.rankId === 2) {
           const novoUsuarioCor = await prisma.usuarioCores.createMany({
-            data: [{
-              usuarioId: usuario.id,
-              cor: "Azul"
-            },{
-              usuarioId: usuario.id,
-              cor: "Rosa"
-            },{
-              usuarioId: usuario.id,
-              cor: "Amarelo"
-            }]
-          })
-        }else if(usuario.rankId === 3){
+            data: [
+              {
+                usuarioId: usuario.id,
+                cor: "Azul",
+              },
+              {
+                usuarioId: usuario.id,
+                cor: "Rosa",
+              },
+              {
+                usuarioId: usuario.id,
+                cor: "Amarelo",
+              },
+            ],
+          });
+        } else if (usuario.rankId === 3) {
           const novoUsuarioAcessorio = await prisma.usuarioAcessorios.create({
             usuarioId: usuario.id,
-            acessorio: "Bone"
-          })
-        }else if(usuario.rankId === 4){
+            acessorio: "Bone",
+          });
+        } else if (usuario.rankId === 4) {
           const novoUsuarioAcessorio = await prisma.usuarioAcessorios.create({
             usuarioId: usuario.id,
-            acessorio: "Oculos"
-          })
-        }else if(usuario.rankId === 5){
+            acessorio: "Oculos",
+          });
+        } else if (usuario.rankId === 5) {
           const novoUsuarioAcessorio = await prisma.usuarioAcessorios.create({
             usuarioId: usuario.id,
-            acessorio: "Palhaco"
-          })
-        }else if(usuario.rankId === 6){
+            acessorio: "Palhaco",
+          });
+        } else if (usuario.rankId === 6) {
           const novoUsuarioAcessorio = await prisma.usuarioAcessorios.create({
             usuarioId: usuario.id,
-            acessorio: "Squirtle"
-          })
-        }else if(usuario.rankId === 3){
+            acessorio: "Squirtle",
+          });
+        } else if (usuario.rankId === 3) {
           const novoUsuarioAcessorio = await prisma.usuarioAcessorios.create({
             usuarioId: usuario.id,
-            acessorio: "Cartola"
-          })
-        }else if(usuario.rankId === 3){
+            acessorio: "Cartola",
+          });
+        } else if (usuario.rankId === 3) {
           const novoUsuarioAcessorio = await prisma.usuarioAcessorios.create({
             usuarioId: usuario.id,
-            acessorio: "Tiara"
-          })
-        }else if(usuario.rankId === 3){
+            acessorio: "Tiara",
+          });
+        } else if (usuario.rankId === 3) {
           const novoUsuarioAcessorio = await prisma.usuarioAcessorios.create({
             usuarioId: usuario.id,
-            acessorio: "Coroa"
-          })
+            acessorio: "Coroa",
+          });
         }
         usuario.xp = xpAtualizado - 100;
       } else if (xpAtualizado <= 0) {
@@ -595,6 +686,8 @@ module.exports.trilha = async (req, res) => {
           xp: usuario.xp,
           nivel: usuario.nivel,
           rankId: usuario.rankId,
+          ofensiva: usuario.ofensiva,
+          recordeOfensiva: usuario.recordeOfensiva,
         },
       });
     }
@@ -638,8 +731,8 @@ module.exports.trilha = async (req, res) => {
             ativo: true,
             status: "Aprovado",
             ...(categoria && {
-              rank: {categoria: categoria}
-            })
+              rank: { categoria: categoria },
+            }),
           },
           include: {
             errosLacuna: {
@@ -805,9 +898,9 @@ module.exports.trilha = async (req, res) => {
             res.status(200).json(atividadeEnviada);
           } else if (sorteio === 1) {
             const lacunas = atividadeSorteada.lacunas.slice(
-            0,
-            1 + (Math.ceil(Math.random() * 3))
-          );
+              0,
+              1 + Math.ceil(Math.random() * 3)
+            );
             const nivelLacunaMaior = Math.max(...lacunas.map((x) => x.nivel));
             const atividadeEnviada = {
               id: atividadeSorteada.id,
@@ -825,7 +918,7 @@ module.exports.trilha = async (req, res) => {
         } else if (podeSerLacuna) {
           const lacunas = atividadeSorteada.lacunas.slice(
             0,
-            1 + (Math.ceil(Math.random() * 3))
+            1 + Math.ceil(Math.random() * 3)
           );
           const nivelLacunaMaior = Math.max(...lacunas.map((x) => x.nivel));
           const atividadeEnviada = {

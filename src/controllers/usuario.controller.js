@@ -289,3 +289,60 @@ module.exports.ranking = async (req, res) => {
     res.status(500).json({ error: "Erro ao buscar ranking." });
   }
 };
+
+module.exports.ofensiva = async (req, res) => {
+  try{
+    const usuario = await prisma.usuario.findFirst({
+      where: { id: req.userId },
+    });
+    const historicoAlgoritmoOntem =
+        await prisma.historicoAlgoritmo.findFirst({
+          where: {
+            usuarioId: req.userId,
+            data: {
+              gt: new Date(new Date().setDate(new Date().getDate() - 1)),
+              lt: new Date(),
+            },
+          },
+        });
+      const historicoMultiplaEscolhaOntem =
+        await prisma.historicoMultiplaEscolha.findFirst({
+          where: {
+            usuarioId: req.userId,
+            data:{
+              gt: new Date(new Date().setDate(new Date().getDate() - 1)),
+              lt: new Date(),
+            }
+          },
+        });
+      const historicoAlgoritmoHoje =
+        await prisma.historicoAlgoritmo.findFirst({
+          where: {
+            usuarioId: req.userId,
+            data: {
+              gt: new Date(),
+            },
+          },
+        });
+      const historicoMultiplaEscolhaHoje =
+        await prisma.historicoMultiplaEscolha.findFirst({
+          where: {
+            usuarioId: req.userId,
+            data:{
+              gt: new Date(),
+            }
+          },
+        });
+      if (!historicoAlgoritmoOntem && !historicoMultiplaEscolhaOntem && !historicoAlgoritmoHoje && !historicoMultiplaEscolhaHoje) {
+        usuario.ofensiva = 0;
+        await prisma.usuario.update({
+          where: { id: req.userId },
+          data: { ofensiva: 0 },
+        });
+      }
+      res.status(200).json({ ofensiva: usuario.ofensiva, recordeOfensiva: usuario.recordeOfensiva })
+  }catch(error){
+    console.log(error);
+    res.status(500).json({ error: "Erro ao buscar ofensiva." });
+  }
+}

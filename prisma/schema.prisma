@@ -88,6 +88,8 @@ model Usuario {
   rankId                    Int?
   nivel                     Int?
   xp                        Float                        @default(0)
+  ofensiva                  Int                         @default(0)
+  recordeOfensiva           Int                         @default(0)
   algoritmos                Algoritmo[]
   multiplasEscolhas         MultiplaEscolha[]
   historicosAlgoritmo       HistoricoAlgoritmo[]
