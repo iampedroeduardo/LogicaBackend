@@ -5,7 +5,7 @@ const secret = process.env.JWT_SECRET;
 
 module.exports.cadastrar = async (req, res) => {
   try {
-    const { nome, email, genero, dataNascimento, usuario, senha } = req.body;
+    const { nome, email, genero, dataNascimento, usuario, senha, tipo } = req.body;
 
     // Validations
     if (!nome || nome.trim().length < 3) {
@@ -22,6 +22,10 @@ module.exports.cadastrar = async (req, res) => {
 
     if (!dataNascimento) {
       return res.status(400).json({ error: "Data de nascimento é obrigatória." });
+    }
+
+    if (tipo == null) {
+      return res.status(400).json({ error: "Tipo é obrigatório." });
     }
 
     const dataNasc = new Date(dataNascimento);
@@ -72,6 +76,7 @@ module.exports.cadastrar = async (req, res) => {
         acessorio: "None",
         rankId: 1,
         nivel: 0,
+        tipo,
       },
     });
     const payload = {
