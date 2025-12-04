@@ -307,6 +307,7 @@ module.exports.entrar = async (req, res) => {
           xp: usuarioEncontrado.xp,
           cores: usuarioEncontrado.cores,
           acessorios: usuarioEncontrado.acessorios,
+          tipo: usuarioEncontrado.tipo,
         });
       } else {
         res.status(401).json({ error: "senha" });
