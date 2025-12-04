@@ -96,19 +96,28 @@ model Usuario {
   historicosMultiplaEscolha HistoricoMultiplaEscolha[]
   cores                     UsuarioCores[]
   acessorios                UsuarioAcessorios[]
+  validacaoEmails           ValidacaoEmail[]
+}
+
+model ValidacaoEmail {
+  id Int @id @default(autoincrement())
+  token String
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  usuarioId Int
+  validado Boolean @default(false)
 }
 
 model UsuarioCores {
   id Int @id @default(autoincrement())
   cor CorPerfil
-  usuario Usuario @relation(fields: [usuarioId], references: [id])
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   usuarioId Int
 }
 
 model UsuarioAcessorios {
   id Int @id @default(autoincrement())
   acessorio AcessorioPerfil
-  usuario Usuario @relation(fields: [usuarioId], references: [id])
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   usuarioId Int
 }
 
@@ -143,6 +152,7 @@ model MultiplaEscolha {
   id                        Int                        @id @default(autoincrement())
   nome                      String
   descricao                 String?
+  foto                      String?
   gabarito                  String?
   pergunta                  String?
   ativo                     Boolean

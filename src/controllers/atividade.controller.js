@@ -1,19 +1,12 @@
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 const multer = require("multer");
+const fs = require("fs");
 const path = require("path");
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    // O ideal é que este diretório seja servido estaticamente pelo seu Express.
-    cb(null, "public/uploads/fotosPerfil/");
-  },
-  filename: function (req, file, cb) {
-    // Garante um nome de arquivo único adicionando um timestamp.
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, file.fieldname + "-" + uniqueSuffix + path.extname(file.originalname));
-  },
-});
+// Configura o multer para guardar os arquivos em memória (como Buffer)
+// em vez de salvar diretamente no disco.
+const storage = multer.memoryStorage();
 
 const upload = multer({ storage: storage });
 
@@ -42,9 +35,9 @@ module.exports.cadastrar = async (req, res) => {
               window.opcao4.trim().length > 60 ||
               window.opcaoCorreta.length === 0 ||
               window.gabarito.trim().length === 0 ||
-              window.descricao.trim().length === 0 ||
+              (window.descricao.trim().length === 0 && !window.imagem) ||
               window.categoria.trim().length === 0 ||
-              ((window.tipo.trim().length === 0 ||
+              ((
                 window.rankId === null ||
                 window.nivel === null) &&
                 req.admin))) ||
@@ -75,10 +68,24 @@ module.exports.cadastrar = async (req, res) => {
         if (questao.type === "multiplaEscolha") {
           // Exemplo de como associar uma imagem à questão.
           // Supondo que o frontend envie o nome do campo da imagem (ex: 'imagem_0') na própria questão.
-          const imagemAssociada = req.files.find(file => file.fieldname === questao.campoImagem);
-          const caminhoImagem = imagemAssociada ? imagemAssociada.path : null;
-          // Agora você pode salvar `caminhoImagem` no banco de dados.
+          const imagemAssociada = req.files.find(file => file.fieldname === questao.imagem);
+          let caminhoImagem = null;
 
+          // Se uma imagem foi encontrada, agora vamos salvá-la no disco.
+          if (imagemAssociada) {
+            const dir = "public/uploads/imagensDescricao/";
+            // Garante que o diretório de destino exista
+            if (!fs.existsSync(dir)) {
+              fs.mkdirSync(dir, { recursive: true });
+            }
+
+            // Cria um nome de arquivo único
+            const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+            const nomeArquivo = imagemAssociada.fieldname + "-" + uniqueSuffix + path.extname(imagemAssociada.originalname);
+            caminhoImagem = path.join(dir, nomeArquivo);
+
+            fs.writeFileSync(caminhoImagem, imagemAssociada.buffer);
+          }
           const opcoes = [
             questao.opcao1,
             questao.opcao2,
@@ -129,7 +136,7 @@ module.exports.cadastrar = async (req, res) => {
                     : req.userId === questaoSalva.usuarioId
                       ? "Rascunho"
                       : "Negado", // Adicionar o campo da imagem aqui se for editar
-                  // foto: caminhoImagem,
+                  foto: caminhoImagem,
                 },
               });
             }
@@ -153,7 +160,7 @@ module.exports.cadastrar = async (req, res) => {
                     ? "Aprovado"
                     : "Pendente"
                   : "Rascunho",
-                // foto: caminhoImagem, // Adicionar o campo da imagem aqui
+                foto: caminhoImagem, // Adicionar o campo da imagem aqui
                 usuarioId: req.userId,
               },
             });
@@ -649,17 +656,17 @@ module.exports.trilha = async (req, res) => {
             usuarioId: usuario.id,
             acessorio: "Squirtle",
           });
-        } else if (usuario.rankId === 3) {
+        } else if (usuario.rankId === 7) {
           const novoUsuarioAcessorio = await prisma.usuarioAcessorios.create({
             usuarioId: usuario.id,
             acessorio: "Cartola",
           });
-        } else if (usuario.rankId === 3) {
+        } else if (usuario.rankId === 8) {
           const novoUsuarioAcessorio = await prisma.usuarioAcessorios.create({
             usuarioId: usuario.id,
             acessorio: "Tiara",
           });
-        } else if (usuario.rankId === 3) {
+        } else if (usuario.rankId === 9) {
           const novoUsuarioAcessorio = await prisma.usuarioAcessorios.create({
             usuarioId: usuario.id,
             acessorio: "Coroa",
@@ -831,6 +838,7 @@ module.exports.trilha = async (req, res) => {
           id: atividadeSorteada.id,
           nome: atividadeSorteada.nome,
           descricao: atividadeSorteada.descricao,
+          foto: atividadeSorteada.foto,
           pergunta: atividadeSorteada.pergunta,
           gabarito: atividadeSorteada.gabarito,
           opcoes: ["", "", "", ""],

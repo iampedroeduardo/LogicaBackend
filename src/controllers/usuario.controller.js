@@ -1,19 +1,25 @@
 const prisma = require("../prisma/client");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const nodemailer = require("nodemailer");
 const secret = process.env.JWT_SECRET;
 
 module.exports.cadastrar = async (req, res) => {
   try {
-    const { nome, email, genero, dataNascimento, usuario, senha, tipo } = req.body;
+    const { nome, email, genero, dataNascimento, usuario, senha, tipo } =
+      req.body;
 
     // Validations
     if (!nome || nome.trim().length < 3) {
-      return res.status(400).json({ error: "O nome deve ter pelo menos 3 caracteres." });
+      return res
+        .status(400)
+        .json({ error: "O nome deve ter pelo menos 3 caracteres." });
     }
 
     if (!usuario || usuario.trim().length < 3) {
-      return res.status(400).json({ error: "O usuário deve ter pelo menos 3 caracteres." });
+      return res
+        .status(400)
+        .json({ error: "O usuário deve ter pelo menos 3 caracteres." });
     }
 
     if (!email || !email.includes("@") || email.trim().length < 10) {
@@ -21,7 +27,9 @@ module.exports.cadastrar = async (req, res) => {
     }
 
     if (!dataNascimento) {
-      return res.status(400).json({ error: "Data de nascimento é obrigatória." });
+      return res
+        .status(400)
+        .json({ error: "Data de nascimento é obrigatória." });
     }
 
     if (tipo == null) {
@@ -59,7 +67,9 @@ module.exports.cadastrar = async (req, res) => {
       !senha.match(/[\W|_]/g) ||
       senha.length < 8
     ) {
-      return res.status(400).json({ error: "A senha não atende aos requisitos mínimos de segurança." });
+      return res.status(400).json({
+        error: "A senha não atende aos requisitos mínimos de segurança.",
+      });
     }
 
     const senhaEncriptada = await bcrypt.hash(senha, 10);
@@ -84,13 +94,13 @@ module.exports.cadastrar = async (req, res) => {
         usuarioId: novoUsuario.id,
         cor: novoUsuario.cor,
       },
-    })
+    });
     const usuarioAcessorio = await prisma.usuarioAcessorios.create({
       data: {
         usuarioId: novoUsuario.id,
         acessorio: novoUsuario.acessorio,
       },
-    })
+    });
     const payload = {
       id: novoUsuario.id,
       admin: novoUsuario.adm,
@@ -100,44 +110,113 @@ module.exports.cadastrar = async (req, res) => {
       where: { id: novoUsuario.id },
       data: { token },
     });
-    const usuarioEncontrado = await prisma.usuario.findFirst({
-      where: { id: novoUsuario.id },
-      include: {
-        rank: true,
-        cores: true,
-        acessorios: true,
+    const { v4: uuidv4 } = await import("uuid");
+    const tokenValidacao = uuidv4();
+    const validacaoEmail = await prisma.validacaoEmail.create({
+      data: {
+        usuarioId: novoUsuario.id,
+        token: tokenValidacao,
       },
     });
-    const proximoRank = await prisma.rank.findFirst({
-      where: { id: usuarioEncontrado.rankId + 1 },
+    const transporter = nodemailer.createTransport({
+      host: "smtp.gmail.com",
+      port: 587,
+      secure: false,
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
     });
-    res.status(201).json({
-      nome: usuarioEncontrado.nome,
-      adm: usuarioEncontrado.adm,
-      token: usuarioEncontrado.token,
-      id: usuarioEncontrado.id,
-      email: usuarioEncontrado.email,
-      usuario: usuarioEncontrado.usuario,
-      genero: usuarioEncontrado.genero,
-      nascimento: usuarioEncontrado.nascimento,
-      cor: usuarioEncontrado.cor,
-      acessorio: usuarioEncontrado.acessorio,
-      rank: usuarioEncontrado.rank,
-      nivel: usuarioEncontrado.nivel,
-      proximoRank: proximoRank,
-      xp: usuarioEncontrado.xp,
-      cores: usuarioEncontrado.cores,
-      acessorios: usuarioEncontrado.acessorios,
-    });
+    const mailOptions = {
+      from: `"Lógica++" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: "Bem-vindo ao Lógica++",
+      html: `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Validação de Email</title>
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #4b79a1, #283e51);
+      color: #fff;
+      text-align: center;
+    }
+
+    .container {
+      background: rgba(255, 255, 255, 0.15);
+      padding: 40px;
+      border-radius: 20px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+      width: 350px;
+      display: inline-block;
+      margin-top: 50px;
+    }
+
+    a.button {
+      margin-top: 20px;
+      padding: 12px 20px;
+      font-size: 16px;
+      border-radius: 10px;
+      cursor: pointer;
+      background-color: #6446DB;
+      color: #000;
+      transition: 0.2s;
+      text-decoration: none;
+      display: inline-block;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Validação de Email</h2>
+    <p>Obrigado por se registrar! Por favor, clique no botão abaixo para validar seu email:</p>
+    <a href="${process.env.SERVER_URL}/api/validate-email/${tokenValidacao}" class="button">Validar Email</a>
+  </div>
+</body>
+</html>
+`,
+    };
+    await transporter.sendMail(mailOptions);
+    res.status(201).json(true);
   } catch (error) {
     console.log(error);
     res.status(500).json({ error: "Erro ao criar usuário." });
   }
 };
 
+module.exports.validateEmail = async (req, res) => {
+  try {
+    const { token } = req.params;
+    const validacao = await prisma.validacaoEmail.findFirst({
+      where: { token },
+    });
+    if (!validacao) {
+      return res.redirect(`${process.env.FRONT_URL}/validacao-email-erro`);
+    }
+    await prisma.validacaoEmail.update({
+      where: { id: validacao.id },
+      data: { validado: true },
+    });
+    res.redirect(`${process.env.FRONT_URL}/validacao-email-sucesso`)
+  } catch (error) {
+    console.log(error);
+    res.redirect(`${process.env.FRONT_URL}/validacao-email-erro`)
+  }
+};
+
 module.exports.editar = async (req, res) => {
   try {
-    const { id, nome, email, genero, dataNascimento, usuario, cor, acessorio } = req.body;
+    const { id, nome, email, genero, dataNascimento, usuario, cor, acessorio } =
+      req.body;
     const usuarioEditado = await prisma.usuario.update({
       where: { id },
       data: {
@@ -296,58 +375,64 @@ module.exports.ranking = async (req, res) => {
 };
 
 module.exports.ofensiva = async (req, res) => {
-  try{
+  try {
     const usuario = await prisma.usuario.findFirst({
       where: { id: req.userId },
     });
-    const historicoAlgoritmoOntem =
-        await prisma.historicoAlgoritmo.findFirst({
-          where: {
-            usuarioId: req.userId,
-            data: {
-              gt: new Date(new Date().setDate(new Date().getDate() - 1)),
-              lt: new Date(),
-            },
+    const historicoAlgoritmoOntem = await prisma.historicoAlgoritmo.findFirst({
+      where: {
+        usuarioId: req.userId,
+        data: {
+          gt: new Date(new Date().setDate(new Date().getDate() - 1)),
+          lt: new Date(),
+        },
+      },
+    });
+    const historicoMultiplaEscolhaOntem =
+      await prisma.historicoMultiplaEscolha.findFirst({
+        where: {
+          usuarioId: req.userId,
+          data: {
+            gt: new Date(new Date().setDate(new Date().getDate() - 1)),
+            lt: new Date(),
           },
-        });
-      const historicoMultiplaEscolhaOntem =
-        await prisma.historicoMultiplaEscolha.findFirst({
-          where: {
-            usuarioId: req.userId,
-            data:{
-              gt: new Date(new Date().setDate(new Date().getDate() - 1)),
-              lt: new Date(),
-            }
+        },
+      });
+    const historicoAlgoritmoHoje = await prisma.historicoAlgoritmo.findFirst({
+      where: {
+        usuarioId: req.userId,
+        data: {
+          gt: new Date(),
+        },
+      },
+    });
+    const historicoMultiplaEscolhaHoje =
+      await prisma.historicoMultiplaEscolha.findFirst({
+        where: {
+          usuarioId: req.userId,
+          data: {
+            gt: new Date(),
           },
-        });
-      const historicoAlgoritmoHoje =
-        await prisma.historicoAlgoritmo.findFirst({
-          where: {
-            usuarioId: req.userId,
-            data: {
-              gt: new Date(),
-            },
-          },
-        });
-      const historicoMultiplaEscolhaHoje =
-        await prisma.historicoMultiplaEscolha.findFirst({
-          where: {
-            usuarioId: req.userId,
-            data:{
-              gt: new Date(),
-            }
-          },
-        });
-      if (!historicoAlgoritmoOntem && !historicoMultiplaEscolhaOntem && !historicoAlgoritmoHoje && !historicoMultiplaEscolhaHoje) {
-        usuario.ofensiva = 0;
-        await prisma.usuario.update({
-          where: { id: req.userId },
-          data: { ofensiva: 0 },
-        });
-      }
-      res.status(200).json({ ofensiva: usuario.ofensiva, recordeOfensiva: usuario.recordeOfensiva })
-  }catch(error){
+        },
+      });
+    if (
+      !historicoAlgoritmoOntem &&
+      !historicoMultiplaEscolhaOntem &&
+      !historicoAlgoritmoHoje &&
+      !historicoMultiplaEscolhaHoje
+    ) {
+      usuario.ofensiva = 0;
+      await prisma.usuario.update({
+        where: { id: req.userId },
+        data: { ofensiva: 0 },
+      });
+    }
+    res.status(200).json({
+      ofensiva: usuario.ofensiva,
+      recordeOfensiva: usuario.recordeOfensiva,
+    });
+  } catch (error) {
     console.log(error);
     res.status(500).json({ error: "Erro ao buscar ofensiva." });
   }
-}
+};

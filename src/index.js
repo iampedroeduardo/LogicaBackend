@@ -8,6 +8,7 @@ const cors = require('cors');
 app.use(cors());
 app.use(express.json());
 app.use('/api', router);
+app.use('/public', express.static('public'));
 dotenv.config()
 
 const PORT = process.env.PORT || 3000;

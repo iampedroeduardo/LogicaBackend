@@ -9,5 +9,6 @@ route.put('/editar', usuarioController.editar)
 route.get('/atualizar-dados', middleware, usuarioController.atualizarDados)
 route.get('/ranking/:cursor/:acima/:abaixo', middleware, usuarioController.ranking)
 route.get('/ofensiva', middleware, usuarioController.ofensiva)
+route.get('/validate-email/:token',usuarioController.validateEmail)
 
 module.exports = route
