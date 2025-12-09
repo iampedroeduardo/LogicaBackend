@@ -2,6 +2,9 @@ const prisma = require("../prisma/client");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
+const { emailConfirmacao } = require("../html/emailConfirmacao"); // Usado para enviar o email
+const { validacaoEmailErro } = require("../html/validacaoEmailErro"); // HTML para erro de validação
+const { validacaoEmailSucesso } = require("../html/validacaoEmailSucesso"); // HTML para sucesso na validação
 const secret = process.env.JWT_SECRET;
 
 module.exports.cadastrar = async (req, res) => {
@@ -131,59 +134,7 @@ module.exports.cadastrar = async (req, res) => {
       from: `"Lógica++" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: "Bem-vindo ao Lógica++",
-      html: `<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Validação de Email</title>
-  <style>
-    body {
-      margin: 0;
-      height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-family: Arial, sans-serif;
-      background: linear-gradient(135deg, #4b79a1, #283e51);
-      color: #fff;
-      text-align: center;
-    }
-
-    .container {
-      background: rgba(255, 255, 255, 0.15);
-      padding: 40px;
-      border-radius: 20px;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
-      width: 350px;
-      display: inline-block;
-      margin-top: 50px;
-    }
-
-    a.button {
-      margin-top: 20px;
-      padding: 12px 20px;
-      font-size: 16px;
-      border-radius: 10px;
-      cursor: pointer;
-      background-color: #6446DB;
-      color: #000;
-      transition: 0.2s;
-      text-decoration: none;
-      display: inline-block;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h2>Validação de Email</h2>
-    <p>Obrigado por se registrar! Por favor, clique no botão abaixo para validar seu email:</p>
-    <a href="${process.env.SERVER_URL}/api/validate-email/${tokenValidacao}" class="button">Validar Email</a>
-  </div>
-</body>
-</html>
-`,
+      html: emailConfirmacao(tokenValidacao),
     };
     await transporter.sendMail(mailOptions);
     res.status(201).json(true);
@@ -200,16 +151,16 @@ module.exports.validateEmail = async (req, res) => {
       where: { token },
     });
     if (!validacao) {
-      return res.redirect(`${process.env.FRONT_URL}/validacao-email-erro`);
+      return res.status(400).send(validacaoEmailErro());
     }
     await prisma.validacaoEmail.update({
       where: { id: validacao.id },
       data: { validado: true },
     });
-    res.redirect(`${process.env.FRONT_URL}/validacao-email-sucesso`)
+    res.status(200).send(validacaoEmailSucesso());
   } catch (error) {
     console.log(error);
-    res.redirect(`${process.env.FRONT_URL}/validacao-email-erro`)
+    res.status(500).send(validacaoEmailErro());
   }
 };
 
@@ -257,6 +208,7 @@ module.exports.editar = async (req, res) => {
       xp: usuarioEncontrado.xp,
       cores: usuarioEncontrado.cores,
       acessorios: usuarioEncontrado.acessorios,
+      tipo: usuarioEncontrado.tipo,
     });
   } catch (error) {
     console.log(error);
@@ -381,12 +333,18 @@ module.exports.ofensiva = async (req, res) => {
     const usuario = await prisma.usuario.findFirst({
       where: { id: req.userId },
     });
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+
+    const ontem = new Date(hoje);
+    ontem.setDate(hoje.getDate() - 1);
+
     const historicoAlgoritmoOntem = await prisma.historicoAlgoritmo.findFirst({
       where: {
         usuarioId: req.userId,
         data: {
-          gt: new Date(new Date().setDate(new Date().getDate() - 1)),
-          lt: new Date(),
+          gte: ontem,
+          lt: hoje,
         },
       },
     });
@@ -395,33 +353,22 @@ module.exports.ofensiva = async (req, res) => {
         where: {
           usuarioId: req.userId,
           data: {
-            gt: new Date(new Date().setDate(new Date().getDate() - 1)),
-            lt: new Date(),
+            gte: ontem,
+            lt: hoje,
           },
         },
       });
     const historicoAlgoritmoHoje = await prisma.historicoAlgoritmo.findFirst({
-      where: {
-        usuarioId: req.userId,
-        data: {
-          gt: new Date(),
-        },
-      },
+      where: { usuarioId: req.userId, data: { gte: hoje } },
     });
     const historicoMultiplaEscolhaHoje =
       await prisma.historicoMultiplaEscolha.findFirst({
-        where: {
-          usuarioId: req.userId,
-          data: {
-            gt: new Date(),
-          },
-        },
+        where: { usuarioId: req.userId, data: { gte: hoje } },
       });
     if (
       !historicoAlgoritmoOntem &&
       !historicoMultiplaEscolhaOntem &&
-      !historicoAlgoritmoHoje &&
-      !historicoMultiplaEscolhaHoje
+      !historicoAlgoritmoHoje && !historicoMultiplaEscolhaHoje
     ) {
       usuario.ofensiva = 0;
       await prisma.usuario.update({

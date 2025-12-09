@@ -492,13 +492,19 @@ module.exports.trilha = async (req, res) => {
     });
 
     if (!data.isPrimeiraQuestao) {
+      const hoje = new Date();
+      hoje.setHours(0, 0, 0, 0);
+
+      const ontem = new Date(hoje);
+      ontem.setDate(hoje.getDate() - 1);
+
       const historicoAlgoritmoOntem =
         await prisma.historicoAlgoritmo.findFirst({
           where: {
             usuarioId: req.userId,
             data: {
-              gt: new Date(new Date().setDate(new Date().getDate() - 1)),
-              lt: new Date(),
+              gte: ontem,
+              lt: hoje,
             },
           },
         });
@@ -506,31 +512,21 @@ module.exports.trilha = async (req, res) => {
         await prisma.historicoMultiplaEscolha.findFirst({
           where: {
             usuarioId: req.userId,
-            data:{
-              gt: new Date(new Date().setDate(new Date().getDate() - 1)),
-              lt: new Date(),
-            }
+            data: {
+              gte: ontem,
+              lt: hoje,
+            },
           },
         });
       const historicoAlgoritmoHoje =
         await prisma.historicoAlgoritmo.findFirst({
-          where: {
-            usuarioId: req.userId,
-            data: {
-              gt: new Date(),
-            },
-          },
+          where: { usuarioId: req.userId, data: { gte: hoje } },
         });
       const historicoMultiplaEscolhaHoje =
         await prisma.historicoMultiplaEscolha.findFirst({
-          where: {
-            usuarioId: req.userId,
-            data:{
-              gt: new Date(),
-            }
-          },
+          where: { usuarioId: req.userId, data: { gte: hoje } },
         });
-      if (historicoAlgoritmoOntem || historicoMultiplaEscolhaOntem && !historicoAlgoritmoHoje && !historicoMultiplaEscolhaHoje) {
+      if ((historicoAlgoritmoOntem || historicoMultiplaEscolhaOntem) && !historicoAlgoritmoHoje && !historicoMultiplaEscolhaHoje) {
         usuario.ofensiva++;
       }
       else if(!historicoAlgoritmoOntem && !historicoMultiplaEscolhaOntem && !historicoAlgoritmoHoje && !historicoMultiplaEscolhaHoje){
