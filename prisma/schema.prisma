@@ -97,6 +97,7 @@ model Usuario {
   cores                     UsuarioCores[]
   acessorios                UsuarioAcessorios[]
   validacaoEmails           ValidacaoEmail[]
+  recuperacaoSenhas         RecuperacaoSenha[]
 }
 
 model ValidacaoEmail {
@@ -105,6 +106,14 @@ model ValidacaoEmail {
   usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   usuarioId Int
   validado Boolean @default(false)
+}
+
+model RecuperacaoSenha {
+  id Int @id @default(autoincrement())
+  token String
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  usuarioId Int
+  recuperada Boolean @default(false)
 }
 
 model UsuarioCores {

@@ -350,6 +350,7 @@ module.exports.atualizarDados = async (req, res) => {
       xp: usuarioEncontrado.xp,
       cores: usuarioEncontrado.cores,
       acessorios: usuarioEncontrado.acessorios,
+      tipo: usuarioEncontrado.tipo,
     });
   } catch (error) {
     console.log(error);

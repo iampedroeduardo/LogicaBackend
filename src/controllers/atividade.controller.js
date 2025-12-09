@@ -638,38 +638,52 @@ module.exports.trilha = async (req, res) => {
           });
         } else if (usuario.rankId === 3) {
           const novoUsuarioAcessorio = await prisma.usuarioAcessorios.create({
-            usuarioId: usuario.id,
-            acessorio: "Bone",
+            data: {
+              usuarioId: usuario.id,
+              acessorio: "Bone",
+            },
           });
         } else if (usuario.rankId === 4) {
           const novoUsuarioAcessorio = await prisma.usuarioAcessorios.create({
-            usuarioId: usuario.id,
-            acessorio: "Oculos",
+            data: {
+              usuarioId: usuario.id,
+              acessorio: "Oculos",
+            },
           });
         } else if (usuario.rankId === 5) {
           const novoUsuarioAcessorio = await prisma.usuarioAcessorios.create({
-            usuarioId: usuario.id,
-            acessorio: "Palhaco",
+            data: {
+              usuarioId: usuario.id,
+              acessorio: "Palhaco",
+            },
           });
         } else if (usuario.rankId === 6) {
           const novoUsuarioAcessorio = await prisma.usuarioAcessorios.create({
-            usuarioId: usuario.id,
-            acessorio: "Squirtle",
+            data: {
+              usuarioId: usuario.id,
+              acessorio: "Squirtle",
+            },
           });
         } else if (usuario.rankId === 7) {
           const novoUsuarioAcessorio = await prisma.usuarioAcessorios.create({
-            usuarioId: usuario.id,
-            acessorio: "Cartola",
+            data: {
+              usuarioId: usuario.id,
+              acessorio: "Cartola",
+            },
           });
         } else if (usuario.rankId === 8) {
           const novoUsuarioAcessorio = await prisma.usuarioAcessorios.create({
-            usuarioId: usuario.id,
-            acessorio: "Tiara",
+            data: {
+              usuarioId: usuario.id,
+              acessorio: "Tiara",
+            },
           });
         } else if (usuario.rankId === 9) {
           const novoUsuarioAcessorio = await prisma.usuarioAcessorios.create({
-            usuarioId: usuario.id,
-            acessorio: "Coroa",
+            data: {
+              usuarioId: usuario.id,
+              acessorio: "Coroa",
+            },
           });
         }
         usuario.xp = xpAtualizado - 100;
@@ -813,19 +827,31 @@ module.exports.trilha = async (req, res) => {
       if (atividadesDisponiveis.length === 0) {
         return res.status(200).json(null);
       }
+      //inicia variável onde vão ser listados os ranks que tem atividades disponíveis
       const ranksDisponiveis = [];
       for (const atividade of atividadesDisponiveis) {
         if (!ranksDisponiveis.includes(atividade.rankId)) {
+          //cada um deles é adicionado no vetor
           ranksDisponiveis.push(atividade.rankId);
         }
       }
+      //ordena os ranks
       ranksDisponiveis.sort((a, b) => a - b);
+      //cria um vetor de probabilidades e o preenche
       const probabilidades = [];
+      //para cada rank disponível
+      //exemplo ranksDisponiveis = [1,2,3,]
       for (let i = 0; i < ranksDisponiveis.length; i++) {
+        //adiciona a quantidade referente de vezes de cada rank nas probabilidades
         for (let j = 0; j < 2 ** i; j++) {
           probabilidades.push(ranksDisponiveis[i]);
+          // i = 0 --> probabilidades.push(1)
+          // i = 1 --> probabilidades.push(2,2)
+          // i = 2 --> probabilidades.push(3,3,3,3)
         }
       }
+      //dessa forma rank 3 ≈ 50% de probabilidade, rank 2 ≈ 25% e rank 1 ≈ 12,5% 
+      //sorteia o rank com base nas probabilidades
       const rankSorteado =
         probabilidades[Math.floor(Math.random() * probabilidades.length)];
       const atividadesFinais = atividadesDisponiveis.filter(
