@@ -25,14 +25,15 @@ module.exports.cadastrar = async (req, res) => {
             window.salvar &&
             (window.nome.trim().length === 0 ||
               window.pergunta.trim().length === 0 ||
+              window.pergunta.trim().length > 60 ||
               window.opcao1.trim().length === 0 ||
-              window.opcao1.trim().length > 60 ||
+              window.opcao1.trim().length > 90 ||
               window.opcao2.trim().length === 0 ||
-              window.opcao2.trim().length > 60 ||
+              window.opcao2.trim().length > 90 ||
               window.opcao3.trim().length === 0 ||
-              window.opcao3.trim().length > 60 ||
+              window.opcao3.trim().length > 90 ||
               window.opcao4.trim().length === 0 ||
-              window.opcao4.trim().length > 60 ||
+              window.opcao4.trim().length > 90 ||
               window.opcaoCorreta.length === 0 ||
               window.gabarito.trim().length === 0 ||
               (window.descricao.trim().length === 0 && !window.imagem) ||
