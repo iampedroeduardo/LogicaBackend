@@ -33,7 +33,6 @@ Crie um arquivo `.env` na raiz do projeto:
 ```env
 DATABASE_URL="postgresql://USUARIO:SENHA@localhost:5433/NOME_DO_BANCO?schema=public"
 JWT_SECRET="sua_chave_secreta"
-NGROK_AUTHTOKEN="seu_token"
 EMAIL_USER="seu_email@gmail.com"
 EMAIL_PASS="senha_de_app_do_email"
 SERVER_URL="https://sua-url-publica.trycloudflare.com"
